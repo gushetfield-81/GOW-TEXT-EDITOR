@@ -1,59 +1,61 @@
-═══════════════════════════════════════════════════════════════════
- SUA TRADUÇÃO NO R_PLOCU (God of War II europeu — inglês britânico)
-═══════════════════════════════════════════════════════════════════
+====================================================================
+ R_PLOCU_PTBR.WAD — v2 (fonte de gameplay com acentos + msgs 36-45)
+ God of War II — versão EUROPEIA (PAL), slot inglês britânico
+====================================================================
 
-O QUE É ESTE ARQUIVO
---------------------
-R_PLOCU_PTBR.WAD = o R_PLOCU.WAD europeu (slot da língua inglesa
-britânica) com a SUA tradução do GoW2 aplicada por cima, do jeito
-que o jogo europeu espera.
+O QUE É
+-------
+Segunda versão do merge do R_PLOCU. A v1 (confirmada em jogo) já tinha
+todas as mensagens traduzidas, MAS a FONTE que o jogo usa em GAMEPLAY
+e nos banners de pausa (FLP_HUDU) não tinha os glifos ã Ã õ Õ — por
+isso o banner ficava "OPÇES" e palavras com ã/õ sumiam nos textos de
+gameplay (a fonte do SHELLU só cobre os MENUS).
 
-POR QUE SUA TENTATIVA NÃO RODOU
--------------------------------
-O MSGS do europeu NÃO é igual ao do seu R_PERMA:
-  • O europeu tem 799 mensagens; o seu arquivo tem 808. Você tem 10
-    extras (IDs 36-45) que não existem lá, e FALTA a *4034* ("L/R",
-    exclusiva do europeu). Se o jogo procura uma mensagem que não
-    existe, ele pode travar.
-  • A ordem também é diferente (ex.: o europeu pula do 35 para o 100).
-  • E se a troca foi feita em editor hexadecimal, o seu arquivo é
-    5 KB maior — recortar/esticar bytes corrompe a estrutura do WAD
-    e o jogo nem abre.
-Fizemos o caminho seguro: MERGE por ID.
+O QUE A v2 ACRESCENTA (por cima de tudo o que a v1 já tinha)
+-------------------------------------------------------------
+1. FLP_HUDU + MDL_HUDU_0 + GFX_GodOfWarEurope:
+   os 4 glifos com til (ã=132 Ã=133 õ=134 Õ=135) na fonte de
+   gameplay/HUD, com o MESMO esquema de células-vítima validado no
+   shell: ñ, Ä, ö e Ö cederam as células (encaixe exato, tiles do seu
+   PERMA). Efeitos práticos:
+     - banner de pausa: "OPÇES" -> "OPÇÕES" (e "STATUS" continua ok)
+     - legendas/HUD/bônus: "Titã", "amanhã", "não", "õnfalo"... ok
+     - digitar ñ/Ä/ö/Ö não mostra mais nada (sem uso no PT-BR)
+2. MSGS_TXT: as mensagens *36*..*45* (textos de combo "Continue!" etc.)
+   foram RECOLOCADAS — eram os únicos IDs do set americano ausentes do
+   europeu. Se a exec européia consultar esses IDs (por ex. no status
+   das urnas), agora encontra texto em vez de nada.
+   As 798 mensagens existentes NÃO foram alteradas (verificado 1 a 1).
 
-O QUE FOI FEITO
----------------
-  • Mesma ordem e mesmo conjunto de IDs do inglês europeu (799).
-  • 798 mensagens com o SEU texto traduzido.
-  • A *4034* ficou em inglês ("L/R") — são nomes de botões, iguais
-    em português, e é a mensagem exclusiva do europeu.
-  • A mensagem-template com marcador especial (aquela "1]Forward Dash
-    Slam[") foi trocada pela sua versão traduzida ("1]Investida pra
-    frente["), que é um formato que o europeu também usa.
-  • Encoding idêntico ao do europeu: UTF-8 (o mesmo runtime do seu
-    R_PERMA; a fonte é a mesma GodOfWarEurope — acentos ok).
-  • NADA mais foi tocado: as outras 359 tags (fontes, texturas, o
-    filme FLP_HUDU etc.) estão byte a byte iguais ao original.
-  • MSGS_COUNT/MSGS_LINES continuam vazios como no original (todos os
-    WADs do GoW2 são assim; o runtime conta sozinho).
+O QUE MUDOU (4 tags de 360)
+---------------------------
+  FLP_HUDU           : 4 glifos novos + char_map (ñ/Ä/ö/Ö -> vazio)
+  MDL_HUDU_0         : 4 parts novos (410-413), clones de a/A/o/O
+  GFX_GodOfWarEurope : 4 tiles pintados nas células-vítimas
+  MSGS_TXT           : +10 mensagens (36-45) antes do padding final
 
-  1,052,272 bytes | SHA-256: ddca73c5e9d3bbc0a8242ebf7e835fbabd046ae47650e057c2a1f259ea1deff2
-
-COMO USAR
----------
-1. Faça backup do seu R_PLOCU.WAD original.
+INSTALAÇÃO (igual à v1)
+-----------------------
+1. Backup do R_PLOCU.WAD atual (a v1 pode ser descartada — esta a
+   substitui por completo).
 2. Renomeie R_PLOCU_PTBR.WAD para R_PLOCU.WAD e coloque na pasta do
-   jogo (a mesma de onde veio o original).
-3. Rode e selecione INGLÊS (britânico) na configuração de língua do
-   jogo — é esse slot que foi traduzido.
+   jogo, mantendo o idioma INGLÊS (britânico) selecionado.
+3. Mantenha também o R_SHELLU_PTBR.WAD renomeado para R_SHELLU.WAD
+   (menus) — os dois se completam.
 
-VALIDAÇÕES FEITAS
------------------
-  • Round-trip estrutural byte-exato (a tool não altera nada além do
-    texto — verificada também no God of War I/II browser do Mogaika).
-  • Conjunto/ordem/quantidade de IDs idênticos ao inglês europeu.
-  • Abertura e re-salvamento pela God of War Text Editor sem perdas.
-  • Mensagens de boot conferidas: Mortal (Fácil), Espartano (Normal),
-    Deus (Difícil), Titã (Muito Difícil), meses do ano, etc.
+VERIFICAÇÃO (SHA-256)
+---------------------
+Arquivo : R_PLOCU_PTBR.WAD (v2)
+Tamanho : 1.053.552 bytes
+SHA-256 : 35f7d247b9db7f4cf2999b48764e53fcc66fb5869ee7e77dd924be83b3342417
+(v1: 1.052.272 B — ddca73c5e9d3bbc0a8242ebf7e835fba...)
+
+HISTÓRICO
+---------
+  v1 (2026-09-16): merge por ID das mensagens — CONFIRMADA em jogo
+                   ("Funcionou perfeitamente").
+  v2 (2026-09-17): + acentos na fonte de gameplay (células-vítima)
+                   + mensagens 36-45 recolocadas.
 
 Tool By: Gus Hetfield | Special Thanks: Mogaika
+====================================================================

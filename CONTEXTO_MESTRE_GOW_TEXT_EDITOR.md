@@ -407,11 +407,24 @@ inglês britânico). Fonte dos tiles: o mesmo R_PERMA traduzido do usuário.
 - **Entrega**: `saida_shellu/R_SHELLU_PTBR.WAD` (4.965.744 B; SHA-256
   c275e2399522d131a3eb7e085f4ed4bd860aad9ba7f1bea1a36efb396d7f757c) +
   LEIA-ME_SHELLU.txt. Instalar: renomear para R_SHELLU.WAD (backup antes).
-- **PENDENTE/GATE**: teste no PCSX2 pelo usuário. Se o título dourado
-  grande "Opções" continuar sem Õ, ele pertence à FLP_HUDU (dentro do
-  R_PLOCU) → aplicar o MESMO esquema de células-vítima na FLP_HUDU/
-  MDL_HUDA_0/atlas do PLOCU (os parts 410-413 do PERMA JÁ SÃO essa
-  infraestrutura — foram feitos para a fonte HUDA americana).
+- **TESTE PCSX2 (2026-09-17)**: menus OK com acentos; MAS banner dourado
+  continuou "OPÇES" e status das urnas não apareceu. CAUSA RAIZ achada:
+  o banner e os textos de GAMEPLAY usam a FLP_HUDU (dentro do R_PLOCU!),
+  que não tinha os 4 glifos. Comparação com o FLP_HUDA do PERMA US
+  (funcionando) mostrou o mesmo esquema 136 glifos/ã=132… e que os únicos
+  IDs de msg do set US ausentes do EU eram 36-45.
+- **PLOCU v2 entregue (`saida_plocu/R_PLOCU_PTBR.WAD`, 1.053.552 B,
+  SHA-256 35f7d247b9db7f4c…)**: mesmo esquema de células-vítima aplicado à
+  FLP_HUDU/MDL_HUDU_0 (parts 410-413, clones das letras 61/35/75/49,
+  joints 62/36/76/50 — estrutura idêntica ao shell, blocos 224B/raw 156B)
+  + GFX pintada + msgs 36-45 RECOLOCADAS no MSGS_TXT (antes do padding
+    final; 798 corpos intactos). Banner *4006*="Opções"/*4600*="Status"
+  renderizam pela HUDU → consertam-se sozinhos. AGUARDA TESTE.
+  ARMADILHA: no patcher do PLOCU, VITIMAS deve ser consultado via
+  VITIMA_DE (til->vitima); indexar pelo char do til zera ã/Ã/õ/Õ em vez
+  das vítimas (bug pego na validação, corrigido).
+  Se o status das urnas AINDA faltar após a v2: aí é consulta de ID em
+  registrador (engenharia reversa de código, muito mais difícil).
 
 ---
 
