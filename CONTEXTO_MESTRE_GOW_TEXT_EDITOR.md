@@ -521,7 +521,11 @@ No Windows do usuário: `python -m pip install PySide6` + `python gow_text_edito
   pelo agente na mesma rodada: atualizar `god-of-war-text-editor/` + rodar
   `bash github_sync.sh "mensagem do commit"`. Token fine-grained em `/home/user/.github_token`
   (NUNCA versionar nem expor no chat). WADs do jogo NUNCA vão ao repo (copyright);
-  vão tool/, patchers/, LEIA-MEs, CONTEXTO e previews. O usuário fez o upload inicial
+  vão tool/, patchers/, LEIA-MEs, CONTEXTO e previews — E o pacote
+  `GodOfWarTextEditor_Aprimorado_2026-09-12_EXE.zip` (33,6 MB), que desde
+  2026-09-16 é distribuído no repo (tool/) e na **Release v1.0** junto do
+  `gow_text_editor.py` (downloads em 1 clique). O usuário também criou a
+  própria release ('GOW TEXT EDITOR', untagged) — preservar. O usuário fez o upload inicial
   pelo site (commit "Add files via upload") — preservar arquivos dele no sync.
 
 1. **SEMPRE** atualizar este arquivo (ou gerar `CONTEXTO_MESTRE_YYYY-MM-DD.md` novo)
