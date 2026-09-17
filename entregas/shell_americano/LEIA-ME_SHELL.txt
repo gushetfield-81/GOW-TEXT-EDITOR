@@ -1,0 +1,52 @@
+ACENTOS COM TIL NA FONTE DO MENU — R_SHELLA_PTBR.WAD
+=====================================================
+
+O QUE FOI FEITO
+O R_SHELLA.WAD (menus/options do jogo) usa uma fonte proprio, dentro do
+FLP_ShellA, com 132 glifos. Todos os acentos do portugues existiam, MENOS
+os 4 caracteres com til: Ã, Õ, ã, õ (a fonte europeia original cobria
+alemao/frances, que nao tem til).
+
+O mod europeu oficial (R_PERMA.WAD) ja havia resolvido o mesmo problema
+na fonte das mensagens (FLP_HUDA): adicionou 4 glifos novos (132..135)
+clonando a/A/o/O e apontando para tiles com til na textura. Esta entrega
+replica EXATAMENTE a mesma tecnica na fonte do Shell:
+
+1. FLP_ShellA
+   - 4 novos glifos: id 132 (ã), 133 (Ã), 134 (õ), 135 (Õ);
+   - char_map: 0xE3->132, 0xC3->133, 0xF5->134, 0xD5->135;
+   - larguras (symbol widths) copiadas do mod europeu: 627/759/660/792
+     (em 1/16 de pixel, iguais as de a/A/o/O);
+   - refs para 4 novos parts do mesh (180..183).
+
+2. MDL_ShellA_0
+   - 4 novos parts (180..183), clones dos parts de a/A/o/O (59/33/73/47),
+     com o programa DMA (XY do quad + UV) dos glifos com til do mod
+     europeu; a joint de cada clone recebeu a joint da letra base.
+   - parts: 180 -> 184. Tamanho: 85.488 -> 86.400 bytes.
+
+3. GFX_GodOfWarEurope
+   - Os desenhos com til vieram da atlas do R_PERMA. Verificacao
+     matematica: as duas atlas diferem em exatamente 353 pixels e TODOS
+     estao dentro das 4 celulas (150,84)-(168,104), (28,30)-(52,54),
+     (94,110)-(114,130) e (186,2)-(212,26) — nenhuma letra existente
+     foi alterada (ö, ä, ü, ñ etc. intactos).
+   - A paleta (PAL_GodOfWarEurope) e identica nas duas versoes e nao
+     foi tocada.
+
+INTEGRIDADE
+- Todas as outras 2.539 tags do WAD permanecem byte a byte identicas.
+- O WAD e alinhado em 0x10 pelo mesmo serializador da tool (o arquivo
+  cresce 976 bytes, so com os recursos alterados + alinhamento).
+- Validacao por renderizacao em software (usando os quads/UVs do proprio
+  WAD): "Titã (Muito Difícil)", "feijão", "não", "pão", "amanhã", "mãe",
+  "ÃÕãõ" renderizam perfeitamente; veja previa_definitiva.png e
+  zoom_final_tiles.png (antes/depois de cada celula).
+
+COMO REPRODUZIR (opcional)
+- R_SHELLA_PTBR.WAD ja esta pronto para usar (renomeie para R_SHELLA.WAD
+  no diretorio do jogo).
+- Para regerar a partir dos originais:
+    python adicionar_acentos_shell.py
+  (requer R_SHELLA.WAD e R_PERMA.WAD na mesma pasta; o script aborta se
+  qualquer diferenca inesperada for detectada nas atlas.)

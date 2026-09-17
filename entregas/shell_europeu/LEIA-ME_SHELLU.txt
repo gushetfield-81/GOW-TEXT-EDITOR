@@ -1,0 +1,63 @@
+====================================================================
+ R_SHELLU_PTBR.WAD — acentos com til (ã Ã õ Õ) no menu
+ God of War II — versão EUROPEIA (PAL), shell em inglês britânico
+====================================================================
+
+O QUE É
+-------
+O R_SHELLU.WAD europeu (slot "English (UK)") não tinha os glifos
+ã Ã õ Õ na fonte do menu — "Opções", "Titã" etc. apareciam sem til.
+Este patch adiciona os 4 acentos usando a MESMA técnica validada na
+versão americana (R_SHELLA): os tiles completos (letra + til) vindos
+do seu R_PERMA traduzido.
+
+DIFERENÇA PARA O PATCH AMERICANO
+--------------------------------
+Na versão americana a atlas inteira do PERMA podia ser copiada.
+Na europeia NÃO: os desenhos da atlas são diferentes e as posições
+dos tiles do PERMA estão ocupadas por outros glifos vivos.
+Solução: os tiles foram pintados em células de 4 acentos que o
+PT-BR de menus NUNCA usa — ñ, Ä, ö e Ö — que têm exatamente o
+mesmo tamanho dos tiles de til (encaixe perfeito, pixel a pixel):
+
+  ã (20x21) -> célula do ñ   |  Õ (26x25) -> célula do Ö
+  Ã (25x25) -> célula do Ä   |  õ (21x20) -> célula do ö
+
+O que muda na prática: digitar ñ/Ä/ö/Ö no menu não mostra mais
+nada (eram acentos de outras línguas, sem uso no PT-BR). Todos os
+outros 130+ glifos ficam byte a byte intactos — inclusive
+ç Ç é É ú Ú á À â ê ó ô í í à è etc.
+
+O QUE FOI ALTERADO (3 tags de 2533)
+-----------------------------------
+  FLP_ShellU          : 4 glifos novos (132-135) + char_map de
+                        ã/Ã/õ/Õ apontando para eles; ñ/Ä/ö/Ö -> vazio
+  MDL_ShellU_0        : 4 parts novos (180-183), clones das letras
+                        base (a/A/o/O) com o desenho dos tiles de til
+  GFX_GodOfWarEurope  : os 4 tiles pintados nas células liberadas
+                        (mudança limitada a essas 4 células)
+
+As outras 2530 tags estão byte-idênticas às do seu arquivo.
+
+COMO INSTALAR
+-------------
+1. Faça backup do seu R_SHELLU.WAD original.
+2. Renomeie R_SHELLU_PTBR.WAD para R_SHELLU.WAD.
+3. Coloque na pasta do jogo (mesma do original), junto com o
+   R_PLOCU_PTBR.WAD já instalado (selecionando "British English").
+
+VERIFICAÇÃO (SHA-256)
+---------------------
+Arquivo : R_SHELLU_PTBR.WAD
+Tamanho : 4.965.744 bytes
+SHA-256 : c275e2399522d131a3eb7e085f4ed4bd860aad9ba7f1bea1a36efb396d7f757c
+
+OBSERVAÇÃO
+----------
+O título dourado grande "Opções" da tela inicial usa outra fonte
+(FLP_HUDU, dentro do R_PLOCU). Se depois do patch ele ainda aparecer
+como "Opçes" sem o til no Õ, me avise que eu aplico o mesmo esquema
+nessa segunda fonte.
+
+Tool By: Gus Hetfield | Special Thanks: Mogaika
+====================================================================

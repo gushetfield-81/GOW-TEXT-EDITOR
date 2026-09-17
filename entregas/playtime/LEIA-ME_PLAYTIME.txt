@@ -1,0 +1,64 @@
+═══════════════════════════════════════════════════════════════════
+ O MISTÉRIO DO "TOTAL PLAYTIME" — RESOLVIDO
+═══════════════════════════════════════════════════════════════════
+
+POR QUE VOCÊ NUNCA CONSEGUIA MUDAR ESSE TEXTO
+---------------------------------------------
+"Total PlayTime" NÃO é um texto do jogo. Ele não existe no MSGS_TXT
+(a entrada *4601* "Tempo Total Jogado" que você traduziu não é usada
+nesse rótulo — ela é usada em outra tela, ou por nenhum).
+
+Esse rótulo é um DESENHO dentro do filme Flash da tela STATUS
+(recurso FLP_HUDA do R_PERMA.WAD). Lá, o texto é gravado como uma
+lista fixa de comandos de desenho: glifo por glifo (id + largura),
+lidos na fonte europeia (GFX_GodOfWarEurope). Como nunca passa pelo
+sistema de mensagens, nenhuma edição de texto o afeta.
+
+RÓTULOS ESTÁTICOS ENCONTRADOS NO FLP_HUDA
+-----------------------------------------
+  [0] "/10"          (contador de itens, ex.: relíquias)
+  [1] "Total PlayTime"  <== o nosso alvo
+  [2] "3"            (ícone do botão triângulo, "= Voltar")
+  [3] "R"            (botão R1 de virar a página)
+
+O QUE ESTE PACOTE FAZ
+---------------------
+R_PERMA_TTJ.WAD = o SEU R_PERMA (última versão que você mandou, com
+todas as suas edições) + o rótulo [1] alterado para "Tempo de Jogo"
+(mesma fonte, larguras naturais; 13 glifos, mais estreito que o
+original — não encosta no cronômetro).
+
+  3.507.264 bytes
+  SHA-256: 6ae45372b69cb05f95247245bb86c996522f75a7f693fa367e085d19561431da
+  Apenas a tag FLP_HUDA difere do seu arquivo; as outras 3.352 são
+  byte a byte iguais (suas edições de texto preservadas).
+
+CORREÇÃO v2 (avanço das letras)
+-------------------------------
+Na primeira tentativa, o rótulo apareceu como "T E M P O  E  J O G O"
+espalhado sobre o cronômetro. Causa: a "largura" gravada em cada glifo
+do comando NÃO é a largura natural da fonte — é o avanço já na escala
+do filme (aqui, ~1/3 da natural). O patcher agora deriva o fator do
+próprio rótulo original (0.32488) e reusa as larguras exatas dos glifos
+que já existiam nele. Largura nova: 157 (original: 168) — encaixa.
+
+COMO USAR
+---------
+Renomeie para R_PERMA.WAD (faça backup do seu) e coloque na pasta do
+jogo, como você já faz. Teste na tela STATUS (L1/R1).
+
+QUER OUTRO TEXTO?
+-----------------
+1. Deixe patch_total_playtime.py, flp_gow2.py e gow_text_editor.py
+   na mesma pasta, junto do seu R_PERMA.WAD.
+2. Rode:  python patch_total_playtime.py "Duracao do Jogo"
+   (o texto vai entre aspas; pode usar acentos: ç ã õ etc. existem
+   na fonte — verificado: ç=símbolo 114, ã=132).
+
+Detalhe técnico: os glifos são escritos com as larguras naturais da
+fonte; o espaço usa o glifo 0 (igual ao original). O stream novo é
+realinhado em 4 bytes e o arquivo é revalidado por re-leitura completa
+(reparse decodificando os 4 rótulos) antes de gravar.
+
+Tool By: Gus Hetfield | Special Thanks: Mogaika
+(análise do formato FLP baseada no god_of_war_browser do Mogaika)
