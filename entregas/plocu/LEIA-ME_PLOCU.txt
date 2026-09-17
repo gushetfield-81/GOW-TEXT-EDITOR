@@ -47,15 +47,24 @@ VERIFICAÇÃO (SHA-256)
 ---------------------
 Arquivo : R_PLOCU_PTBR.WAD (v2)
 Tamanho : 1.053.552 bytes
-SHA-256 : 4b83800097943185f7f799e9102521d88a6e69ac9bc7644d84cdd0776563a2ad
+SHA-256 : 0e2e91b82a4c9bbe9965e922c56e70168922f91c3370b4f2096fc6e125a1a2cd
 (v1: 1.052.272 B — ddca73c5e9d3bbc0a8242ebf7e835fba...)
+
+TESTE-DIAG_PLOCU.WAD (só fonte, sem msgs 36-45; SHA 247724be9332b7fc…)
+= usar só se a v3 travar, para isolar a causa (ver instruções no chat)
 
 HISTÓRICO
 ---------
   v1 (2026-09-16): merge por ID das mensagens — CONFIRMADA em jogo
                    ("Funcionou perfeitamente").
   v2 (2026-09-17): + acentos na fonte de gameplay (células-vítima)
-                   + mensagens 36-45 recolocadas.
+                   + mensagens 36-45 recolocadas (DEPOIS descobriu-se
+                   que o APPEND NO FIM quebrava a ordem física dos IDs
+                   — suspeita de travamento; corrigido na v3).
+  v2 revisada (2026-09-17): CORREÇÃO DE TRAVAMENTO — mats (FFFFFFFF,3).
+  v3 (2026-09-17): mensagens 36-45 inseridas em POSIÇÃO ORDENADA
+                   (entre *35* e *100*, espelhando o set americano);
+                   resto idêntico à v2 revisada. É A VERSÃO ATUAL.
   v2 revisada (2026-09-17): CORREÇÃO DE TRAVAMENTO — os 4 glifos novos
                    estavam com mats (0xFFFFFFFF, 0); o correto na fonte
                    HUDU é (0xFFFFFFFF, 3) (convenção de TODOS os 132

@@ -434,7 +434,18 @@ inglês britânico). Fonte dos tiles: o mesmo R_PERMA traduzido do usuário.
   do último glyph existente da fonte, NUNCA valor fixo. v2 correta:
   SHA-256 4b83800097943185f7f799e9102521d88a6e69ac9bc7644d84cdd0776563a2ad
   (1.053.552 B). Validada contra a FLP_HUDA US campo a campo (chars/
-  mesh_refs/mats/widths/cmap dos glifos 132-135 idênticos).
+  mesh_refs/mats/widths/cmap dos glifos 132-135 idênticos). MESMO COM
+  ISSO AINDA TRAVOU → 2ª suspeita: MSGS 36-45 APPENDADAS no FIM do
+  arquivo (ordem física ...7100,36,37... quebra a ordem crescente de
+  IDs; o set US que funciona é totalmente ordenado). V3 entregue
+  (SHA 0e2e91b8…): 36-45 inseridas ENTRE *35* e *100* (ordenadas,
+  espelhando o US) + fonte; e TESTE-DIAG_PLOCU.WAD (SHA 247724be…,
+  1.053.264 B) = só FLP/MDL/GFX patchados, MSGS v1 original — para
+  isolar a causa se a v3 travar (diag liga → culpa é das msgs;
+  diag trava → culpa é da fonte/mesh → bisecar FLP vs MDL).
+  Lições: (1) inserir mensagens SEMPRE em posição ordenada por ID;
+  (2) mats de glifo novo = herdar soff da fonte; (3) diff cirúrgica
+  byte a byte (regiões esperadas) exonerou FLP/MDL estruturalmente.
 
 ---
 
