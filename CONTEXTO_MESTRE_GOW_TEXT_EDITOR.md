@@ -516,6 +516,14 @@ No Windows do usuário: `python -m pip install PySide6` + `python gow_text_edito
 
 ## 8. REGRAS PARA SESSÕES FUTURAS (acordo com o usuário)
 
+- **GitHub do projeto (desde 2026-09-16)**: `github.com/gushetfield-81/GOW-TEXT-EDITOR`
+  (PRIVADO, branch `main`). Toda entrega nova de arquivo deve ser commitada e enviada
+  pelo agente na mesma rodada: atualizar `god-of-war-text-editor/` + rodar
+  `bash github_sync.sh "mensagem do commit"`. Token fine-grained em `/home/user/.github_token`
+  (NUNCA versionar nem expor no chat). WADs do jogo NUNCA vão ao repo (copyright);
+  vão tool/, patchers/, LEIA-MEs, CONTEXTO e previews. O usuário fez o upload inicial
+  pelo site (commit "Add files via upload") — preservar arquivos dele no sync.
+
 1. **SEMPRE** atualizar este arquivo (ou gerar `CONTEXTO_MESTRE_YYYY-MM-DD.md` novo)
    ao final de qualquer alteração na tool, com changelog + estado atual.
 2. NÃO alterar o núcleo WAD/encoding validado em jogo sem necessidade explícita;
