@@ -425,6 +425,16 @@ inglês britânico). Fonte dos tiles: o mesmo R_PERMA traduzido do usuário.
   das vítimas (bug pego na validação, corrigido).
   Se o status das urnas AINDA faltar após a v2: aí é consulta de ID em
   registrador (engenharia reversa de código, muito mais difícil).
+- **TRAVAMENTO no boot (2026-09-17, CORRIGIDO)**: a 1ª build da PLOCU v2
+  (SHA 35f7d247…) CONGELAVA o jogo na tela "SCE Europe presents". Causa:
+  mats dos 4 glifos novos com (0xFFFFFFFF, 0) — a FLP_HUDU usa
+  (0xFFFFFFFF, 3) para TODOS os glifos (e o patch US também); soff=0 é
+  dereferenciado no boot e derruba o jogo. A FLP_ShellU usa soff=0 (por
+  isso o shell nunca travou). REGRA: mats de glifo novo = copiar o soff
+  do último glyph existente da fonte, NUNCA valor fixo. v2 correta:
+  SHA-256 4b83800097943185f7f799e9102521d88a6e69ac9bc7644d84cdd0776563a2ad
+  (1.053.552 B). Validada contra a FLP_HUDA US campo a campo (chars/
+  mesh_refs/mats/widths/cmap dos glifos 132-135 idênticos).
 
 ---
 

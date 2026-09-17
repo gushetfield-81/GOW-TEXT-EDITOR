@@ -47,7 +47,7 @@ VERIFICAÇÃO (SHA-256)
 ---------------------
 Arquivo : R_PLOCU_PTBR.WAD (v2)
 Tamanho : 1.053.552 bytes
-SHA-256 : 35f7d247b9db7f4cf2999b48764e53fcc66fb5869ee7e77dd924be83b3342417
+SHA-256 : 4b83800097943185f7f799e9102521d88a6e69ac9bc7644d84cdd0776563a2ad
 (v1: 1.052.272 B — ddca73c5e9d3bbc0a8242ebf7e835fba...)
 
 HISTÓRICO
@@ -56,6 +56,12 @@ HISTÓRICO
                    ("Funcionou perfeitamente").
   v2 (2026-09-17): + acentos na fonte de gameplay (células-vítima)
                    + mensagens 36-45 recolocadas.
+  v2 revisada (2026-09-17): CORREÇÃO DE TRAVAMENTO — os 4 glifos novos
+                   estavam com mats (0xFFFFFFFF, 0); o correto na fonte
+                   HUDU é (0xFFFFFFFF, 3) (convenção de TODOS os 132
+                   glifos dela e do patch americano). Usar 0 travava o
+                   jogo no boot. Nada mais mudou.
+                   DESCONSIDERAR qualquer cópia anterior da v2.
 
 Tool By: Gus Hetfield | Special Thanks: Mogaika
 ====================================================================
