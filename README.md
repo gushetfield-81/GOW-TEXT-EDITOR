@@ -33,6 +33,14 @@ god-of-war-text-editor/
 └── previews/                            ← renders de conferência das fontes
 ```
 
+## ⬇️ Downloads da tool
+
+| O quê | Onde |
+|---|---|
+| **Código Python** (`gow_text_editor.py`) | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-12/`](tool/GodOfWarTextEditor_Aprimorado_2026-09-12/gow_text_editor.py) — requer Python 3.10+ e `pip install PySide6` |
+| **Pacote Windows (.EXE standalone)** | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-12_EXE.zip`](tool/GodOfWarTextEditor_Aprimorado_2026-09-12_EXE.zip) (33,6 MB — Python+PySide6 embutidos; extrair e rodar `GodOfWarTextEditor.exe`, sem instalar nada) |
+| **Release oficial** | aba **Releases** do repositório (mesmos arquivos, download em 1 clique) |
+
 ## 🚀 Instalação rápida (cada patch)
 
 1. **Backup** do WAD original na pasta do jogo.
@@ -48,6 +56,7 @@ O launcher e o código versionados aqui:
 | Arquivo | Tamanho (B) | SHA-256 |
 |---|---|---|
 | `tool/…/GodOfWarTextEditor.exe` | 179.712 | `7c43368fd54d101f…` |
+| `tool/…_EXE.zip` (pacote Windows) | 33.587.311 | `281c50db6995012d…` |
 
 **Não incluídos neste repositório** (por direitos autorais do jogo e/ou limite
 de 25 MB/arquivo do upload web do GitHub):
@@ -55,8 +64,7 @@ de 25 MB/arquivo do upload web do GitHub):
 - os 4 WADs traduzidos (`R_SHELLA_PTBR`, `R_SHELLU_PTBR`, `R_PLOCU_PTBR`,
   `R_PERMA_TTJ`) — tamanho e SHA-256 completos de cada um estão nos LEIA-MEs
   de `entregas/`, para conferência das cópias privadas;
-- o pacote Windows completo `GodOfWarTextEditor_Aprimorado_2026-09-12_EXE.zip`
-  (33,6 MB) — mantido localmente; a tool roda com Python 3.10+ e PySide6.
+- *(o pacote .EXE passou a ser distribuído no próprio repositório e na aba Releases)*
 
 ## 📜 Histórico de versões
 
