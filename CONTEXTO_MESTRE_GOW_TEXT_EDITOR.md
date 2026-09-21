@@ -603,3 +603,9 @@ workspace — fica só dentro do ZIP de entrega. Refazer via Sessão 5 (changelo
 se precisar regerar o pacote.
 
 *Fim do documento — manter este formato nas próximas revisões.*
+
+## Lição adicional — FLP das skins / limite de linhas (2026-09-21)
+- No MSGS_TXT do R_PERMA, IDs 5101–5107 usam exatamente duas linhas: linha 0 = nome da skin; linha 1 = habilidade.
+- A tela de skins usa DynamicLabels do FLP para esses dois campos. Uma terceira linha da mesma mensagem não aparece porque o código do jogo só solicita/atribui os dois campos; serializar o FLP permite editar layout, labels e scripts de apresentação, mas não altera a rotina nativa que separa a mensagem nem cria automaticamente um terceiro valor.
+- O limite de ~64 caracteres é do campo/label da habilidade. Para exibir duas habilidades seria necessário alterar também a lógica no ELF (ou encontrar um campo já existente que a rotina preencha), não apenas o FLP/MSGS_TXT.
+- O browser do Mogaika suporta parse/serialize do FLP e decompilação/recompilação de scripts de apresentação; isso não equivale a recompilar as funções nativas do ELF.
