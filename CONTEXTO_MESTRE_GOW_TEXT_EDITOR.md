@@ -668,10 +668,13 @@ O usuário determinou que a versão mais recente da tool deve ficar na aba
 **Releases** e que, de agora em diante, toda mudança entregue na tool deve ser
 publicada ali automaticamente.
 
-- **Release atual:** [`v2026.09.22-r3`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.22-r3),
-  título **God of War Text Editor — 2026-09-22 R3**, anexando exatamente
-  `GodOfWarTextEditor_Aprimorado_2026-09-22_R3_EXE.zip` (33.749.116 B;
-  SHA-256 `b9b9d559ad927e3e04f7492478122c9df9bb31c7e0ee8619ea81db20dbc8add4`).
+- **Release atual publicada e verificada:** [`v2026.09.22-r3`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.22-r3),
+  título **God of War Text Editor — 2026-09-22 R3**, pública (`draft=false`,
+  `prerelease=false`), criada sobre o commit
+  `7d398f74ef8e2820ffbc83ee01390a82a1c37596`. Ela anexa exatamente
+  [`GodOfWarTextEditor_Aprimorado_2026-09-22_R3_EXE.zip`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/download/v2026.09.22-r3/GodOfWarTextEditor_Aprimorado_2026-09-22_R3_EXE.zip)
+  (33.749.116 B; SHA-256
+  `b9b9d559ad927e3e04f7492478122c9df9bb31c7e0ee8619ea81db20dbc8add4`).
   A release rascunho/sem tag **GOW TEXT EDITOR** e a release `v1.0` são
   preservadas, sem sobrescrita ou remoção.
 - **Regra obrigatória para o futuro:** depois de cada alteração que gere uma
