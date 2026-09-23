@@ -488,25 +488,15 @@ class Message:
 
 
 class FLPMovie:
-    """Filme Flash FLP (formato GoW2): leitura estrutural + reescrita de
-    rótulos desenhados (StaticLabels) — texto gravado no filme como uma
-    lista fixa de comandos de desenho (glifo + avanço), sem passar pelo
-    MSGS. Ex.: "Total PlayTime" na tela STATUS do FLP_HUDA.
+    """Filme Flash FLP GoW2: leitura estrutural + reescrita de StaticLabels.
 
-    Layout conforme god_of_war_browser (Mogaika), validado em jogo:
-    header 0x5C com contagens (GH @0x38, refs @0x3C, fonts @0x40,
-    statics @0x44, dynamics @0x48, d6 @0x4C, d7 @0x50, u16 transf/blend
-    @0x54/56, strings_size u32 @0x58). Depois do header: GH (4B), refs
-    (8B; materiais 8B), fontes (header 0x24 + corpo com widths e
-    char_map), statics (header 0x1C com o tamanho do stream em +0x18;
-    streams alinhados em 4), dynamics (0x20 cada) e o restante — que a
-    reescrita preserva byte a byte (só desloca).
+    Este parser atende o layout GoW2 (magic 0x1B, header 0x5C). O formato
+    irmão do GoW1 (magic 0x21, header 0x60) fica em :class:`FLPMovieGoW1`;
+    use :func:`open_flp_movie` quando a origem puder ser de qualquer jogo.
 
-    Comando de desenho: op 0x80|flags {&8 gh u16 + escala i16/1024;
-    &4 cor 4B; &2 x i16/16; &1 y i16/16} + u8 contagem + contagem x
-    (glifo u16, avanço i16/16). O avanço NÃO é a largura natural da
-    fonte: é o passo já na escala do filme (~0.32x da natural no
-    "Total PlayTime", com kerning manual do autor).
+    StaticLabels guardam texto como comandos de desenho (glifo + avanço), e
+    não como um TXT. Ex.: ``Total PlayTime`` em ``FLP_HUDA``. A reescrita
+    altera somente o stream do rótulo e preserva o restante do filme.
     """
 
     @staticmethod
@@ -526,6 +516,9 @@ class FLPMovie:
         if len(b) < 0x5C:
             raise ValueError("FLP: tamanho inválido (não é FLP GoW2)")
         self.data = b
+        self.format_name = "GoW2"
+        self.static_header_size = 0x1C
+        self.static_size_offset = 0x18
         self.gh_count = self._u32(b, 0x38)
         self.ref_count = self._u32(b, 0x3C)
         self.font_count = self._u32(b, 0x40)
@@ -585,8 +578,9 @@ class FLPMovie:
             size = self._u32(b, hdr + 0x18)
             if size > len(b) or pos + size > len(b):
                 raise ValueError("FLP: stream de rótulo fora dos limites")
-            self.statics.append({"hdr": hdr, "stream": pos, "size": size})
-            pos = (pos + size + 3) & ~3
+            padded_end = (pos + size + 3) & ~3
+            self.statics.append({"hdr": hdr, "stream": pos, "size": size, "padded_end": padded_end})
+            pos = padded_end
         self.dynamics_pos = pos
         if pos + 0x20 * self.dynamic_count > len(b):
             raise ValueError("FLP: dynamics fora dos limites")
@@ -615,16 +609,22 @@ class FLPMovie:
     # ---------------- comandos de desenho ----------------
 
     def parse_commands(self, buf: bytes) -> list[dict]:
+        """Lê os comandos de desenho de um StaticLabel.
+
+        ``header_end`` é guardado de propósito: ao reescrever um label com
+        várias linhas, cada cabeçalho (fonte, cor, X/Y e escala) é copiado
+        literalmente. Só a lista de glifos de cada comando é recriada.
+        """
         blocks: list[dict] = []
         cur: dict | None = None
         i = 0
-        first_run_pos = None
         while i < len(buf):
             op = buf[i]
             i += 1
             if op & 0x80:
                 cur = {"flags": op & 0x7F, "glyphs": [], "gh": None, "scale": None,
-                       "color": None, "x": None, "y": None, "start": i - 1}
+                       "color": None, "x": None, "y": None, "start": i - 1,
+                       "header_end": None}
                 blocks.append(cur)
                 if op & 8:
                     if i + 4 > len(buf):
@@ -647,13 +647,10 @@ class FLPMovie:
                         raise ValueError("comando truncado (y)")
                     cur["y"] = self._u16s(buf, i) / 16.0
                     i += 2
-                if first_run_pos is None:
-                    first_run_pos = i
+                cur["header_end"] = i
             else:
                 if cur is None:
                     raise ValueError("comando de glifo sem bloco aberto")
-                if first_run_pos is None:
-                    first_run_pos = i - 1
                 if i + 4 * op > len(buf):
                     raise ValueError("lista de glifos truncada")
                 for _ in range(op):
@@ -661,122 +658,250 @@ class FLPMovie:
                     i += 4
         return blocks
 
+    @staticmethod
+    def _display_font_char(code: int) -> str:
+        """Converte o índice do char_map em texto visual para a UI.
+
+        As fontes PS2 usadas pelos FLPs do GoW1/GoW2 normalmente usam a
+        página CP1252: o índice 0xE3 é ``ã``, 0xE9 é ``é`` etc. O leitor
+        anterior mostrava esses glifos como ``?`` por aceitar somente ASCII,
+        o que escondia justamente a tradução PT-BR do R_SHELL.
+        """
+        if not 0 <= code <= 0x10FFFF or code < 0x20:
+            return "?"
+        if code <= 0xFF:
+            try:
+                return bytes((code,)).decode("cp1252")
+            except UnicodeDecodeError:
+                return chr(code)
+        try:
+            return chr(code)
+        except ValueError:
+            return "?"
+
+    @staticmethod
+    def _char_code_for_font(character: str, cmap: list[int]) -> int:
+        """Resolve um caractere Unicode para o índice usado no char_map.
+
+        Português cabe diretamente em U+0000..U+00FF; o fallback CP1252
+        também cobre caracteres como aspas tipográficas e o símbolo de euro.
+        """
+        code = ord(character)
+        if code < len(cmap):
+            return code
+        try:
+            encoded = character.encode("cp1252")
+        except UnicodeEncodeError:
+            return -1
+        return encoded[0] if len(encoded) == 1 and encoded[0] < len(cmap) else -1
+
     def decode_ids(self, font_idx: int, ids) -> str:
         inv: dict[int, int] = {}
-        for c, s in enumerate(self.char_map(font_idx)):
-            if s >= 0:
-                inv.setdefault(s, c)
-        return "".join(chr(inv[g]) if g in inv and 32 <= inv[g] < 127 else "?" for g in ids)
+        for c, symbol in enumerate(self.char_map(font_idx)):
+            if symbol >= 0:
+                inv.setdefault(symbol, c)
+        return "".join(self._display_font_char(inv[g]) if g in inv else "?" for g in ids)
 
     def label(self, index: int) -> dict:
-        """Informações do rótulo: texto, editável?, detalhes."""
+        """Informações do rótulo: texto, editável?, linhas e detalhes.
+
+        Um StaticLabel pode ter vários RenderCommands. No R_SHELL isso é a
+        forma normal de guardar um aviso em duas ou mais linhas: cada comando
+        carrega sua própria posição X/Y. Eles são editáveis desde que a edição
+        mantenha a mesma quantidade de linhas, permitindo preservar todos os
+        cabeçalhos, âncoras e escalas do desenho.
+        """
         if not 0 <= index < len(self.statics):
             raise ValueError("rótulo inexistente")
         st = self.statics[index]
         info = {"index": index, "size": st["size"], "text": "", "editable": False,
-                "detail": "", "glyph_count": 0}
+                "detail": "", "glyph_count": 0, "line_count": 0,
+                "font_indices": []}
         try:
             blocks = self.parse_commands(self.data[st["stream"]:st["stream"] + st["size"]])
         except ValueError as exc:
             info["detail"] = f"comandos inválidos ({exc})"
             return info
-        if len(blocks) != 1:
-            info["detail"] = f"{len(blocks)} blocos de desenho (suporta apenas 1)"
+        if not blocks:
+            info["detail"] = "rótulo sem comandos de desenho"
             return info
-        blk = blocks[0]
-        info["glyph_count"] = len(blk["glyphs"])
-        info["gh"] = blk["gh"]
-        info["scale"] = blk["scale"]
-        info["x"], info["y"] = blk["x"], blk["y"]
-        font_idx = self.font_index_of_gh(blk["gh"]) if blk["gh"] is not None else None
-        if font_idx is None:
-            info["detail"] = f"bloco não aponta para uma fonte (gh={blk['gh']})"
+
+        decoded_blocks: list[str] = []
+        unresolved: list[int] = []
+        unknown: list[int] = []
+        for block_index, blk in enumerate(blocks, start=1):
+            info["glyph_count"] += len(blk["glyphs"])
+            font_idx = self.font_index_of_gh(blk["gh"]) if blk["gh"] is not None else None
+            info["font_indices"].append(font_idx)
+            if font_idx is None:
+                unresolved.append(block_index)
+                decoded_blocks.append("?")
+                continue
+            known_symbols = {symbol for symbol in self.char_map(font_idx) if symbol >= 0}
+            ids = [glyph for glyph, _ in blk["glyphs"]]
+            unknown.extend(glyph for glyph in ids if glyph not in known_symbols)
+            decoded_blocks.append(self.decode_ids(font_idx, ids))
+
+        info["text"] = "\n".join(decoded_blocks)
+        info["line_count"] = len(blocks)
+        if unresolved:
+            info["detail"] = f"bloco(s) sem fonte resolvida: {', '.join(map(str, unresolved))}"
             return info
-        info["font_idx"] = font_idx
-        info["text"] = self.decode_ids(font_idx, [g for g, _ in blk["glyphs"]])
-        unknown = [g for g, _ in blk["glyphs"]
-                   if g not in {s for s in self.char_map(font_idx) if s >= 0}]
         if unknown:
             info["detail"] = f"glifos fora do mapa da fonte: {unknown[:8]}"
             return info
-        # posição onde começa a 1ª lista de glifos (após os campos do bloco)
-        buf = self.data[st["stream"]:st["stream"] + st["size"]]
-        j = 1
-        op = buf[0]
-        if op & 8: j += 4
-        if op & 4: j += 4
-        if op & 2: j += 2
-        if op & 1: j += 2
-        info["hdr_len"] = j  # bytes do bloco (a contagem u8 é reemitida no encode)
+
         info["editable"] = True
-        info["detail"] = (f"fonte {font_idx} • escala {blk['scale']:.4f} • "
-                          f"{len(blk['glyphs'])} glifos • largura "
-                          f"{sum(w for _, w in blk['glyphs']):.1f}")
+        if len(blocks) == 1:
+            blk = blocks[0]
+            font_idx = info["font_indices"][0]
+            info["gh"] = blk["gh"]
+            info["scale"] = blk["scale"]
+            info["x"], info["y"] = blk["x"], blk["y"]
+            info["font_idx"] = font_idx
+            info["hdr_len"] = blk["header_end"] - blk["start"]
+            info["detail"] = (f"{self.format_name} • fonte {font_idx} • escala {blk['scale']:.4f} • "
+                              f"{len(blk['glyphs'])} glifos • largura "
+                              f"{sum(w for _, w in blk['glyphs']):.1f}")
+        else:
+            fonts = ", ".join(str(idx) for idx in sorted(set(info["font_indices"])))
+            info["detail"] = (
+                f"{self.format_name} • {len(blocks)} linhas de desenho • fonte(s) {fonts} • "
+                f"edite mantendo exatamente {len(blocks)} linhas"
+            )
         return info
 
-    def encode_label(self, index: int, new_text: str) -> bytes:
-        """Recria o stream do rótulo com o novo texto (1 bloco). Devolve os
-        bytes NOVOS da tag inteira; o restante do filme é preservado."""
+    def _encode_block_run(self, font_idx: int, original_glyphs, new_text: str,
+                          line_number: int, total_lines: int) -> bytes:
+        """Monta a lista de glifos de uma linha, mantendo a métrica do bloco.
+
+        Glifos que já existiam herdam o avanço original (incluindo kerning
+        manual); glifos novos usam a largura natural da fonte multiplicada
+        pela escala medida naquele bloco. Esta é a mesma política usada no
+        editor de um bloco, agora aplicada independentemente a cada linha.
+        """
         if not new_text:
+            prefix = f"Linha {line_number}: " if total_lines > 1 else ""
+            raise ValueError(prefix + "texto vazio não é suportado neste rótulo.")
+        cmap = self.char_map(font_idx)
+        widths = self.symbol_widths(font_idx)
+        known = {glyph: width for glyph, width in original_glyphs}
+        natural = 0.0
+        for glyph, _width in original_glyphs:
+            if not 0 <= glyph < len(widths):
+                raise ValueError(f"Linha {line_number}: glifo original inválido ({glyph}).")
+            natural += widths[glyph] / 16.0
+        original_width = sum(width for _, width in original_glyphs)
+        factor = (original_width / natural) if natural else 1.0
+
+        missing: list[str] = []
+        glyphs: list[tuple[int, float]] = []
+        for ch in new_text:
+            char_code = self._char_code_for_font(ch, cmap)
+            symbol = cmap[char_code] if char_code >= 0 else -1
+            if symbol < 0 and ch == " ":
+                symbol = 0  # convenção: glifo 0 é o espaço
+            if not 0 <= symbol < len(widths):
+                missing.append(ch)
+                continue
+            width = known.get(symbol)
+            if width is None:
+                width = widths[symbol] / 16.0 * factor
+            glyphs.append((symbol, width))
+        if missing:
+            prefix = f"Linha {line_number}: " if total_lines > 1 else ""
+            raise ValueError(prefix + "caracteres sem glifo nesta fonte: " +
+                             " ".join(sorted(set(missing))))
+        if len(glyphs) > 255:
+            prefix = f"Linha {line_number}: " if total_lines > 1 else ""
+            raise ValueError(prefix + f"texto longo demais ({len(glyphs)} glifos; máximo 255).")
+        run = bytearray([len(glyphs)])
+        for glyph, width in glyphs:
+            run += struct.pack("<Hh", glyph, int(round(width * 16)))
+        return bytes(run)
+
+    def encode_label(self, index: int, new_text: str) -> bytes:
+        """Recria um StaticLabel sem mover os seus blocos de desenho.
+
+        Para um label de uma linha, o comportamento é o original. Para vários
+        blocos, cada linha digitada (separada por Enter) substitui o bloco da
+        mesma posição. Assim as coordenadas X/Y, cor, fonte e escala de cada
+        linha são preservadas; adicionar/remover linhas é recusado de forma
+        explícita, pois exigiria uma nova estratégia de layout.
+        """
+        normalized = new_text.replace("\r\n", "\n").replace("\r", "\n")
+        if not normalized:
             raise ValueError("Texto vazio (para apagar use outro recurso).")
         st = self.statics[index]
         info = self.label(index)
         if not info["editable"]:
             raise ValueError(f"Rótulo somente leitura: {info['detail']}")
-        font_idx = info["font_idx"]
-        cm = self.char_map(font_idx)
-        widths = self.symbol_widths(font_idx)
-        orig = self.parse_commands(self.data[st["stream"]:st["stream"] + st["size"]])[0]
-        known = {g: w for g, w in orig["glyphs"]}
-        so = sum(w for _, w in orig["glyphs"])
-        sn = sum(widths[g] / 16.0 for g, _ in orig["glyphs"])
-        factor = (so / sn) if sn else 1.0
-        missing = []
-        for ch in new_text:
-            if ord(ch) < len(cm) and cm[ord(ch)] >= 0:
-                continue
-            if ch == " ":
-                continue  # convenção: espaço pode usar o glifo 0
-            missing.append(ch)
-        if missing:
-            raise ValueError("Caracteres sem glifo nesta fonte: " + " ".join(sorted(set(missing))))
-        glyphs = []
-        for ch in new_text:
-            s = cm[ord(ch)] if ord(ch) < len(cm) else -1
-            if s < 0 and ch == " ":
-                s = 0  # convenção: glifo 0 é o espaço
-            w = known.get(s)
-            if w is None:
-                w = widths[s] / 16.0 * factor
-            glyphs.append((s, w))
-        if len(glyphs) > 255:
-            raise ValueError(f"Texto longo demais ({len(glyphs)} glifos; máximo 255).")
-        hdr_bytes = bytes(self.data[st["stream"]:st["stream"] + info["hdr_len"]])
-        run = bytearray([len(glyphs)])
-        for g, w in glyphs:
-            run += struct.pack("<Hh", g, int(round(w * 16)))
-        new_stream = hdr_bytes + bytes(run)
-        new_stream += b"\x00" * ((-len(new_stream)) % 4)
-        return self._rebuild_statics(index, new_stream)
+        # Não reserializar quando a edição devolve exatamente o texto atual.
+        # Isso mantém byte a byte o FLP original, inclusive kerning manual.
+        if normalized == info["text"]:
+            return self.data
+
+        source_stream = self.data[st["stream"]:st["stream"] + st["size"]]
+        blocks = self.parse_commands(source_stream)
+        lines = normalized.split("\n")
+        if len(lines) != len(blocks):
+            raise ValueError(
+                f"Este rótulo possui {len(blocks)} linhas de desenho. "
+                f"Mantenha exatamente {len(blocks)} linhas (uma por bloco)."
+            )
+
+        rebuilt_stream = bytearray()
+        for block_number, (blk, line) in enumerate(zip(blocks, lines), start=1):
+            font_idx = self.font_index_of_gh(blk["gh"]) if blk["gh"] is not None else None
+            if font_idx is None:
+                raise ValueError(f"Linha {block_number}: bloco sem fonte resolvida.")
+            header_end = blk.get("header_end")
+            if not isinstance(header_end, int) or header_end <= blk["start"]:
+                raise ValueError(f"Linha {block_number}: cabeçalho de desenho inválido.")
+            # Equivale ao MarshalRenderCommandList do god_of_war_browser:
+            # um cabeçalho de comando + uma lista de glifos por comando. Aqui
+            # o cabeçalho original é copiado byte a byte, em vez de recalculado.
+            rebuilt_stream += source_stream[blk["start"]:header_end]
+            rebuilt_stream += self._encode_block_run(
+                font_idx, blk["glyphs"], line, block_number, len(blocks)
+            )
+
+        # Cada formato decide se o tamanho gravado inclui ou não o padding.
+        result = self._rebuild_statics(index, bytes(rebuilt_stream))
+        check = self.__class__(result).label(index)
+        if check["text"] != normalized or not check["editable"]:
+            raise ValueError("revalidação falhou no rótulo editado")
+        return result
 
     def _rebuild_statics(self, changed_index: int, new_stream: bytes) -> bytes:
+        """Reconstroi os StaticLabels GoW2 preservando o restante do filme.
+
+        O formato GoW2 historicamente grava o tamanho já alinhado neste
+        editor; a subclasse GoW1 reproduz a convenção do browser (tamanho cru
+        no header, padding fora do stream).
+        """
+        if not self.statics:
+            raise ValueError("FLP não possui rótulos estáticos")
         b = self.data
+        padded_new_stream = new_stream + b"\x00" * ((-len(new_stream)) % 4)
         first = self.statics[0]["hdr"]
-        end = self.statics[-1]["stream"] + ((self.statics[-1]["size"] + 3) & ~3)
+        end = self.statics[-1].get("padded_end", self.statics[-1]["stream"] + ((self.statics[-1]["size"] + 3) & ~3))
         out = bytearray(b[:first])
         for i, stx in enumerate(self.statics):
-            hb = bytearray(b[stx["hdr"]:stx["hdr"] + 0x1C])
-            size = len(new_stream) if i == changed_index else stx["size"]
-            struct.pack_into("<I", hb, 0x18, size)
+            hb = bytearray(b[stx["hdr"]:stx["hdr"] + self.static_header_size])
+            size = len(padded_new_stream) if i == changed_index else stx["size"]
+            struct.pack_into("<I", hb, self.static_size_offset, size)
             out += hb
         for i, stx in enumerate(self.statics):
-            chunk = new_stream if i == changed_index else b[stx["stream"]:stx["stream"] + stx["size"]]
-            out += chunk
-            if i != changed_index:
-                out += b"\x00" * ((-stx["size"]) % 4)
+            if i == changed_index:
+                out += padded_new_stream
+            else:
+                # Padding pode conter bytes não-zero; ele também é preservado.
+                padded_end = stx.get("padded_end", stx["stream"] + ((stx["size"] + 3) & ~3))
+                out += b[stx["stream"]:padded_end]
         out += b[end:]
         # revalidação completa antes de aceitar
-        novo = FLPMovie(bytes(out))
+        novo = self.__class__(bytes(out))
         for i in range(novo.static_count):
             info = novo.label(i)
             if i == changed_index:
@@ -787,6 +912,153 @@ class FLPMovie:
             if info["text"] != antigo["text"] or info["glyph_count"] != antigo["glyph_count"]:
                 raise ValueError(f"revalidação falhou: rótulo [{i}] mudou junto")
         return bytes(out)
+
+
+class FLPMovieGoW1(FLPMovie):
+    """Parser lossless dos StaticLabels FLP do God of War 1.
+
+    Portado do layout documentado no ``god_of_war_browser`` do Mogaika:
+    magic 0x21, header 0x60, referências de mesh com material-count em +2,
+    headers de StaticLabel com 0x24 bytes e tamanho do stream em +0x14.
+    Só o setor de StaticLabels é reescrito; todo o restante do FLP fica bruto.
+    """
+
+    MAGIC = 0x21
+    HEADER_SIZE = 0x60
+
+    def __init__(self, data: bytes):
+        b = bytes(data)
+        if len(b) < self.HEADER_SIZE:
+            raise ValueError("FLP: tamanho inválido (não é FLP GoW1)")
+        if self._u32(b, 0) != self.MAGIC:
+            raise ValueError("FLP: magic inválido (esperado FLP GoW1 0x21)")
+        self.data = b
+        self.format_name = "GoW1"
+        self.static_header_size = 0x24
+        self.static_size_offset = 0x14
+        self.gh_count = self._u32(b, 0x0C)
+        self.ref_count = self._u32(b, 0x14)
+        self.font_count = self._u32(b, 0x1C)
+        self.static_count = self._u32(b, 0x24)
+        self.dynamic_count = self._u32(b, 0x2C)
+        self.strings_size = self._u32(b, 0x58)
+        if (self.strings_size > len(b) or self.gh_count > 8192 or
+                self.ref_count > 8192 or self.static_count > 4096 or self.font_count > 64):
+            raise ValueError("FLP: cabeçalho GoW1 fora dos limites")
+
+        pos = self.HEADER_SIZE
+        self.gh = []
+        for _ in range(self.gh_count):
+            if pos + 4 > len(b):
+                raise ValueError("FLP GoW1: tabela de handlers truncada")
+            self.gh.append(struct.unpack_from("<HH", b, pos))
+            pos += 4
+
+        ref_mat_total = 0
+        for _ in range(self.ref_count):
+            if pos + 8 > len(b):
+                raise ValueError("FLP GoW1: refs truncadas")
+            ref_mat_total += self._u16(b, pos + 2)
+            pos += 8
+        if pos + 8 * ref_mat_total > len(b):
+            raise ValueError("FLP GoW1: materiais das refs truncados")
+        pos += 8 * ref_mat_total
+
+        self.fonts = []
+        for _ in range(self.font_count):
+            if pos + 0x24 > len(b):
+                raise ValueError("FLP GoW1: fonte truncada")
+            chars = self._u32(b, pos)
+            flags = self._u16(b, pos + 0x0C)
+            if not (0 < chars <= 4096):
+                raise ValueError("FLP GoW1: fonte inválida")
+            pos += 0x24
+            if flags & (2 | 4):
+                mats = 0
+                for _ in range(chars):
+                    if pos + 8 > len(b):
+                        raise ValueError("FLP GoW1: refs da fonte truncadas")
+                    mats += self._u16(b, pos + 2)
+                    pos += 8
+                if pos + 8 * mats > len(b):
+                    raise ValueError("FLP GoW1: materiais da fonte truncados")
+                pos += 8 * mats
+            widths_pos = pos
+            pos += 2 * chars
+            pos = (pos + 3) & ~3
+            cmap_pos = pos
+            cmap_n = 0x100 if (flags & 1) else chars
+            pos += 2 * cmap_n
+            pos = (pos + 3) & ~3
+            if pos > len(b):
+                raise ValueError("FLP GoW1: corpo da fonte fora dos limites")
+            self.fonts.append({"chars": chars, "flags": flags,
+                               "widths_pos": widths_pos, "cmap_pos": cmap_pos,
+                               "cmap_n": cmap_n})
+
+        self.statics = []
+        hdrs_start = pos
+        pos += self.static_header_size * self.static_count
+        if pos > len(b):
+            raise ValueError("FLP GoW1: headers de rótulos truncados")
+        for i in range(self.static_count):
+            hdr = hdrs_start + self.static_header_size * i
+            size = self._u32(b, hdr + self.static_size_offset)
+            if size > len(b) or pos + size > len(b):
+                raise ValueError("FLP GoW1: stream de rótulo fora dos limites")
+            padded_end = (pos + size + 3) & ~3
+            if padded_end > len(b):
+                raise ValueError("FLP GoW1: padding de rótulo fora dos limites")
+            self.statics.append({"hdr": hdr, "stream": pos, "size": size, "padded_end": padded_end})
+            pos = padded_end
+        self.dynamics_pos = pos
+        if pos + 0x20 * self.dynamic_count > len(b):
+            raise ValueError("FLP GoW1: dynamics fora dos limites")
+
+    def _rebuild_statics(self, changed_index: int, new_stream: bytes) -> bytes:
+        """GoW1 grava o tamanho cru do stream; o padding de 4 bytes é externo."""
+        if not self.statics:
+            raise ValueError("FLP não possui rótulos estáticos")
+        b = self.data
+        padded_new_stream = new_stream + b"\x00" * ((-len(new_stream)) % 4)
+        first = self.statics[0]["hdr"]
+        end = self.statics[-1]["padded_end"]
+        out = bytearray(b[:first])
+        for i, stx in enumerate(self.statics):
+            hb = bytearray(b[stx["hdr"]:stx["hdr"] + self.static_header_size])
+            size = len(new_stream) if i == changed_index else stx["size"]
+            struct.pack_into("<I", hb, self.static_size_offset, size)
+            out += hb
+        for i, stx in enumerate(self.statics):
+            if i == changed_index:
+                out += padded_new_stream
+            else:
+                out += b[stx["stream"]:stx["padded_end"]]
+        out += b[end:]
+
+        novo = self.__class__(bytes(out))
+        for i in range(novo.static_count):
+            info = novo.label(i)
+            if i == changed_index:
+                if not info["editable"]:
+                    raise ValueError("revalidação falhou no rótulo GoW1 editado")
+                continue
+            antigo = self.label(i)
+            if info["text"] != antigo["text"] or info["glyph_count"] != antigo["glyph_count"]:
+                raise ValueError(f"revalidação falhou: rótulo GoW1 [{i}] mudou junto")
+        return bytes(out)
+
+
+def open_flp_movie(data: bytes) -> FLPMovie:
+    """Abre um FLP GoW1 ou GoW2 pelo magic do próprio recurso."""
+    if len(data) < 4:
+        raise ValueError("FLP: recurso pequeno demais")
+    magic = struct.unpack_from("<I", data, 0)[0]
+    if magic == FLPMovieGoW1.MAGIC:
+        return FLPMovieGoW1(data)
+    if magic == 0x1B:
+        return FLPMovie(data)
+    raise ValueError(f"FLP: magic não suportado 0x{magic:08X}")
 
 
 @dataclass
@@ -1735,6 +2007,16 @@ if QT_AVAILABLE:
             self.active_resource: TextResource | None = None
             self.resource_messages: list[Message] = []
             self.current_index: int | None = None
+            # StaticLabels FLP também podem coexistir com TXT (R_PERM/R_PERMA).
+            # Eles usam a mesma tela principal, mas continuam separados de
+            # TextResource: FLP é binário de desenho, não deve ser serializado
+            # como TXT.
+            self.main_flp_resources: list[tuple[WadTag, FLPMovie]] = []
+            # Índices da lista esquerda: ("txt", índice em text_resources) ou
+            # ("flp", índice em main_flp_resources). Um R_PERM pode conter os
+            # dois tipos, e os rótulos FLP devem ser navegáveis sem diálogo.
+            self.main_resource_entries: list[tuple[str, int]] = []
+            self.active_flp_movie: FLPMovie | None = None
             self.dirty = False
             self._open_snapshot: dict = {}
             self._loading = False
@@ -1778,6 +2060,9 @@ if QT_AVAILABLE:
             lay.setSpacing(int(4 * self._ui_scale))
             label = QLabel(title)
             label.setObjectName("PanelHeaderText")
+            # Guardar o título permite trocar a linguagem do painel quando a
+            # lista principal representa StaticLabels FLP em vez de MSGS/TXT.
+            bar._panel_title_label = label
             lay.addWidget(label)
             lay.addStretch(1)
             return bar, lay
@@ -1811,6 +2096,7 @@ if QT_AVAILABLE:
             left_v.setContentsMargins(0, 0, 0, 0)
             left_v.setSpacing(0)
             left_header, _ = self._panel_header("RECURSOS DE TEXTO")
+            self.resource_panel_title = left_header._panel_title_label
             left_v.addWidget(left_header)
             self.resource_box = FlatListWidget()
             self.resource_box.currentIndexChanged.connect(self.on_resource_change)
@@ -1828,11 +2114,14 @@ if QT_AVAILABLE:
             mid_v.setContentsMargins(0, 0, 0, 0)
             mid_v.setSpacing(0)
             mid_header, mid_hl = self._panel_header("MENSAGENS")
+            self.messages_panel_title = mid_header._panel_title_label
+            self.message_structure_buttons: list[QPushButton] = []
             for text, slot in (("+ Nova", self.new_message), ("Duplicar", self.duplicate_message), ("Excluir", self.delete_message)):
                 mini = QPushButton(text)
                 mini.setObjectName("MiniButton")
                 mini.clicked.connect(slot)
                 mid_hl.addWidget(mini)
+                self.message_structure_buttons.append(mini)
             mid_v.addWidget(mid_header)
             self.search_entry = QLineEdit()
             self.search_entry.setObjectName("FilterField")
@@ -1866,9 +2155,10 @@ if QT_AVAILABLE:
             editor_v.setContentsMargins(0, 0, 0, 0)
             editor_v.setSpacing(0)
             editor_header, editor_hl = self._panel_header("TEXTO DA MENSAGEM")
-            codec_tag = QLabel("CODIF.")
-            codec_tag.setObjectName("PanelTag")
-            editor_hl.addWidget(codec_tag)
+            self.editor_panel_title = editor_header._panel_title_label
+            self.codec_tag = QLabel("CODIF.")
+            self.codec_tag.setObjectName("PanelTag")
+            editor_hl.addWidget(self.codec_tag)
             self.codec_box = QComboBox()
             self.codec_box.addItems(list(TEXT_CODECS))
             self.codec_box.setMinimumContentsLength(10)
@@ -1876,10 +2166,10 @@ if QT_AVAILABLE:
             self.codec_box.currentTextChanged.connect(self.on_codec_change)
             editor_hl.addWidget(self.codec_box)
             editor_hl.addStretch(1)
-            apply_button = QPushButton("Aplicar texto")
-            apply_button.setObjectName("AccentButton")
-            apply_button.clicked.connect(self.apply_current)
-            editor_hl.addWidget(apply_button)
+            self.apply_button = QPushButton("Aplicar texto")
+            self.apply_button.setObjectName("AccentButton")
+            self.apply_button.clicked.connect(self.apply_current)
+            editor_hl.addWidget(self.apply_button)
             editor_v.addWidget(editor_header)
             self.editor = QPlainTextEdit()
             self.editor.setLineWrapMode(QPlainTextEdit.WidgetWidth)
@@ -2194,15 +2484,36 @@ if QT_AVAILABLE:
             self.statusBar().showMessage(text)
 
         def open_wad(self):
-            path, _ = QFileDialog.getOpenFileName(self, "Abrir WAD de God of War", self.config.get("last_open_dir") or "", "WAD (*.wad *.WAD *.txt);;Todos os arquivos (*)")
-            if not path:
-                return
+            path, _ = QFileDialog.getOpenFileName(
+                self, "Abrir WAD de God of War", self.config.get("last_open_dir") or "",
+                "WAD (*.wad *.WAD *.txt);;Todos os arquivos (*)",
+            )
+            if path:
+                self.load_wad_path(path)
+
+        def load_wad_path(self, path: str) -> bool:
+            """Carrega um WAD por caminho, inclusive shells sem recursos TXT.
+
+            R_SHELL.WAD do GoW1 não contém ``msgs_*.txt``: seus textos de
+            menu são StaticLabels dentro de ``FLP_Shell``. Se não houver TXT,
+            esses rótulos passam a ocupar diretamente a lista principal de
+            mensagens — não é necessário abrir uma ferramenta à parte.
+            """
             self._remember_dir("last_open_dir", path)
             try:
                 wad = WadFile.load(path)
                 resources = wad.text_tags()
-                if not resources:
-                    raise ValueError("Nenhum recurso .TXT ou MSGS_TXT foi encontrado neste WAD.")
+                flp_tags = [tag for tag in wad.tags if tag.upper_name.startswith("FLP_")
+                            and tag.data and not tag.zero_sized]
+                parsed_flps: list[tuple[WadTag, FLPMovie]] = []
+                for tag in flp_tags:
+                    try:
+                        movie = open_flp_movie(tag.data)
+                    except Exception:
+                        continue
+                    if movie.static_count:
+                        parsed_flps.append((tag, movie))
+
                 with QSignalBlocker(self.codec_box):
                     if wad.variant.startswith("GoW2") and any(tag.upper_name == "MSGS_TXT" for tag in resources):
                         self.codec_box.setCurrentText("UTF-8 (runtime GoW2)")
@@ -2211,27 +2522,321 @@ if QT_AVAILABLE:
                 self.wad = wad
                 self.wad_path = path
                 self.text_resources = resources
+                self.main_flp_resources = parsed_flps
+                self.main_resource_entries = (
+                    [("txt", index) for index in range(len(resources))] +
+                    [("flp", index) for index in range(len(parsed_flps))]
+                )
+                self.active_tag = None
+                self.active_resource = None
+                self.active_flp_movie = None
+                self.resource_messages = []
+                self.current_index = None
+                self._undo_stack.clear()
+                self._redo_stack.clear()
                 with QSignalBlocker(self.resource_box):
                     self.resource_box.clear()
-                    for tag in resources:
-                        self.resource_box.addItem(f"{tag.name} • {tag.resource_kind} • tag {tag.index} • {len(tag.data):,} bytes")
-                    self.resource_box.setCurrentIndex(0)
+                    for kind, index in self.main_resource_entries:
+                        if kind == "txt":
+                            tag = resources[index]
+                            self.resource_box.addItem(
+                                f"{tag.name} • {tag.resource_kind} • tag {tag.index} • {len(tag.data):,} bytes"
+                            )
+                        else:
+                            tag, movie = parsed_flps[index]
+                            self.resource_box.addItem(
+                                f"{tag.name} • StaticLabels • {movie.format_name} • "
+                                f"{movie.static_count} rótulos • tag {tag.index} • {len(tag.data):,} bytes"
+                            )
+                    self.resource_box.setCurrentIndex(0 if self.main_resource_entries else -1)
                 self.dirty = False
                 self._open_snapshot = {}
-                self.load_resource(0)
+                # Ao trocar de WAD sem TXT, não reutilizar um filtro de outra
+                # campanha/arquivo e aparentar que o shell não possui rótulos.
+                if not resources:
+                    with QSignalBlocker(self.search_entry):
+                        self.search_entry.clear()
+                if resources:
+                    self._set_main_flp_mode_ui(False)
+                    self.load_resource(0)
+                    suffix = (f" • {len(parsed_flps)} FLP com rótulos no painel esquerdo"
+                              if parsed_flps else "")
+                    self._set_status("WAD carregado" + suffix)
+                elif parsed_flps:
+                    self._set_main_flp_mode_ui(True)
+                    self.load_flp_resource(0)
+                    tag, movie = parsed_flps[0]
+                    self._set_status(
+                        f"{movie.static_count} rótulos de {tag.name} carregados na tela principal"
+                    )
+                else:
+                    with QSignalBlocker(self.search_entry):
+                        self.search_entry.clear()
+                    with QSignalBlocker(self.message_table):
+                        self.message_table.clearContents()
+                        self.message_table.setRowCount(0)
+                    with QSignalBlocker(self.editor):
+                        self.editor.clear()
+                        self.editor.document().clearUndoRedoStacks()
+                    self.editor.setReadOnly(False)
+                    self._set_main_flp_mode_ui(False)
+                    self.resource_meta_label.setText("Sem TXT ou StaticLabels FLP compatíveis neste WAD")
+                    self._sync_codec_ui(None)
+                    self.update_preview()
+                    if flp_tags:
+                        self._set_status("WAD carregado sem TXT — nenhum StaticLabel FLP compatível foi encontrado")
+                    else:
+                        self._set_status("WAD carregado (sem recurso TXT ou FLP reconhecido)")
                 self._take_open_snapshot()
-                self.info_label.setText(f"{os.path.basename(path)} • {wad.variant} • {len(wad.tags):,} tags • {len(resources)} recurso(s) editável(is)")
-                self._set_status("WAD carregado")
+                self.info_label.setText(
+                    f"{os.path.basename(path)} • {wad.variant} • {len(wad.tags):,} tags • "
+                    f"{len(resources)} TXT • {len(parsed_flps)} FLP com StaticLabels"
+                )
+                return True
             except Exception as exc:
                 QMessageBox.critical(self, "Erro ao abrir WAD", str(exc))
+                return False
+
+        # ---------------- modo principal: StaticLabels FLP ----------------
+
+        def _resource_entry_at(self, ui_index: int) -> tuple[str, int] | None:
+            if 0 <= ui_index < len(self.main_resource_entries):
+                return self.main_resource_entries[ui_index]
+            return None
+
+        def _resource_box_index(self, kind: str, source_index: int) -> int:
+            for ui_index, entry in enumerate(self.main_resource_entries):
+                if entry == (kind, source_index):
+                    return ui_index
+            return -1
+
+        def _active_text_resource_index(self) -> int:
+            if self.active_tag is None:
+                return -1
+            return next((index for index, tag in enumerate(self.text_resources)
+                         if tag is self.active_tag), -1)
+
+        def _active_resource_box_index(self) -> int:
+            if self._is_main_flp_mode():
+                flp_index = next((index for index, (tag, _movie) in enumerate(self.main_flp_resources)
+                                  if tag is self.active_tag), -1)
+                return self._resource_box_index("flp", flp_index)
+            return self._resource_box_index("txt", self._active_text_resource_index())
+
+        def _is_main_flp_mode(self) -> bool:
+            return self.active_flp_movie is not None and self.active_tag is not None
+
+        def _set_main_flp_mode_ui(self, enabled: bool):
+            """Ajusta a linguagem/controles da tela principal para FLP.
+
+            O objetivo é que o R_SHELL pareça um recurso de mensagens normal:
+            selecionar um item no centro mostra seu texto à direita. Operações
+            que alterariam a estrutura de um MSGS/TXT são desligadas porque um
+            StaticLabel preserva geometria, cabeçalho e lista de glifos.
+            """
+            if enabled:
+                self.resource_panel_title.setText("FILMES / RÓTULOS")
+            elif self.main_flp_resources:
+                self.resource_panel_title.setText("RECURSOS / RÓTULOS")
+            else:
+                self.resource_panel_title.setText("RECURSOS DE TEXTO")
+            self.messages_panel_title.setText("RÓTULOS DESENHADOS" if enabled else "MENSAGENS")
+            self.editor_panel_title.setText("TEXTO DO RÓTULO" if enabled else "TEXTO DA MENSAGEM")
+            self.search_entry.setPlaceholderText(
+                "filtrar por índice ou conteúdo…" if enabled else "filtrar por ID ou conteúdo…"
+            )
+            self.codec_tag.setVisible(not enabled)
+            self.codec_box.setVisible(not enabled)
+            self.apply_button.setText("Aplicar rótulo" if enabled else "Aplicar texto")
+            if enabled:
+                self.apply_button.setEnabled(False)
+            for button in self.message_structure_buttons:
+                button.setEnabled(not enabled)
+            # Essas ações trabalham com o formato TXT. O menu FLP legado fica
+            # disponível como acesso avançado/restauração, mas não é necessário
+            # para editar o shell na tela principal.
+            for name in ("action_export", "action_import", "action_find_replace",
+                         "action_undo_global", "action_redo_global"):
+                action = getattr(self, name, None)
+                if action is not None:
+                    action.setEnabled(not enabled)
+
+        def load_flp_resource(self, resource_index: int):
+            """Torna um FLP o recurso ativo da tela principal.
+
+            Funciona tanto para um R_SHELL sem TXT quanto para um R_PERM que
+            também tenha recursos de mensagens convencionais.
+            """
+            if resource_index < 0 or resource_index >= len(self.main_flp_resources):
+                return
+            tag, movie = self.main_flp_resources[resource_index]
+            self.active_tag = tag
+            self.active_resource = None
+            self.active_flp_movie = movie
+            self.resource_messages = []
+            self.current_index = None
+            self._set_main_flp_mode_ui(True)
+            with QSignalBlocker(self.resource_box):
+                self.resource_box.setCurrentIndex(self._resource_box_index("flp", resource_index))
+            self.resource_meta_label.setText(
+                f"StaticLabels • {movie.format_name} • {movie.static_count} rótulos • "
+                f"offset 0x{tag.offset:x} • tag 0x{tag.tag:04x}"
+            )
+            self.refresh_message_list()
+
+        def _refresh_flp_label_list(self):
+            """Preenche a tabela central com os rótulos do FLP ativo."""
+            movie = self.active_flp_movie
+            if movie is None:
+                return
+            keep_index = self.current_index
+            query = self.search_entry.text().strip().casefold()
+            visible: list[tuple[int, dict]] = []
+            for index in range(movie.static_count):
+                try:
+                    label = movie.label(index)
+                except Exception as exc:
+                    label = {
+                        "text": "(erro ao ler o rótulo)", "editable": False,
+                        "detail": str(exc), "glyph_count": 0,
+                    }
+                searchable = f"{index} {label['text']}".casefold()
+                if not query or query in searchable:
+                    visible.append((index, label))
+
+            self._loading = True
+            try:
+                with QSignalBlocker(self.message_table):
+                    self.message_table.setRowCount(len(visible))
+                    for row, (index, label) in enumerate(visible):
+                        text = label["text"] or "(vazio)"
+                        preview = " ".join(text.replace("\r", "").replace("\n", "  ↵  ").split())
+                        line_count = int(label.get("line_count", 1) or 1)
+                        line_mark = f"  • {line_count} linhas" if line_count > 1 else ""
+                        mark = "  [somente leitura]" if not label["editable"] else ""
+                        item = QTableWidgetItem(f"[{index}] {preview[:230]}{line_mark}{mark}")
+                        item.setData(Qt.UserRole, index)
+                        detail = label.get("detail", "")
+                        item.setToolTip(
+                            f"Rótulo [{index}] • {label.get('glyph_count', 0)} glifo(s)"
+                            + (f"\n{detail}" if detail else "")
+                        )
+                        if not label["editable"]:
+                            item.setForeground(QColor("#9aa4b2"))
+                        self.message_table.setItem(row, 0, item)
+                    chosen_row = next(
+                        (row for row, (index, _label) in enumerate(visible) if index == keep_index),
+                        0 if visible else -1,
+                    )
+                    self.message_table.clearSelection()
+                    if chosen_row >= 0:
+                        self.message_table.selectRow(chosen_row)
+            finally:
+                self._loading = False
+
+            if visible:
+                chosen_index = (keep_index if any(index == keep_index for index, _ in visible)
+                                else visible[0][0])
+                self.load_flp_label(chosen_index)
+            else:
+                self.current_index = None
+                self.apply_button.setEnabled(False)
+                self.editor.setReadOnly(True)
+                self.editor.setToolTip("")
+                with QSignalBlocker(self.editor):
+                    self.editor.clear()
+                self.update_preview()
+
+        def load_flp_label(self, index: int):
+            """Mostra um StaticLabel selecionado no editor da direita."""
+            movie = self.active_flp_movie
+            if movie is None or not 0 <= index < movie.static_count:
+                return
+            try:
+                label = movie.label(index)
+            except Exception as exc:
+                label = {
+                    "text": "", "editable": False,
+                    "detail": f"erro ao ler o rótulo: {exc}", "glyph_count": 0,
+                }
+            self.current_index = index
+            self._loading = True
+            try:
+                with QSignalBlocker(self.editor):
+                    self.editor.setPlainText(label["text"])
+                    self.editor.document().clearUndoRedoStacks()
+                    self.editor.document().setModified(False)
+            finally:
+                self._loading = False
+            editable = bool(label["editable"])
+            self.editor.setReadOnly(not editable)
+            self.editor.setToolTip(label.get("detail", ""))
+            self.apply_button.setEnabled(editable)
+            self.update_preview()
+            if editable:
+                line_count = int(label.get("line_count", 1) or 1)
+                if line_count > 1:
+                    self._set_status(
+                        f"Rótulo [{index}] editável • mantenha {line_count} linhas (uma por bloco)"
+                    )
+                else:
+                    self._set_status(f"Rótulo [{index}] pronto para edição")
+            else:
+                self._set_status(f"Rótulo [{index}] somente leitura • {label['detail']}")
+
+        def _commit_flp_label(self, update_list: bool = True):
+            """Converte o texto principal de volta ao StaticLabel ativo."""
+            movie = self.active_flp_movie
+            if movie is None or self.active_tag is None or self.current_index is None:
+                return
+            label = movie.label(self.current_index)
+            if not label["editable"]:
+                return
+            # Remove apenas espaços/newlines acidentais nas pontas; as quebras
+            # internas continuam sendo as linhas/blocos do StaticLabel.
+            new_text = self.editor.toPlainText().strip()
+            new_data = movie.encode_label(self.current_index, new_text)
+            if new_data == self.active_tag.data:
+                self._refresh_dirty()
+                return
+            self.active_tag.data = new_data
+            self.active_flp_movie = open_flp_movie(new_data)
+            for pos, (tag, _old_movie) in enumerate(self.main_flp_resources):
+                if tag is self.active_tag:
+                    self.main_flp_resources[pos] = (tag, self.active_flp_movie)
+                    break
+            self.dirty = True
+            self._refresh_dirty()
+            if update_list:
+                self._refresh_flp_label_list()
 
         def on_resource_change(self, index: int):
             if self.wad is None or self._loading or index < 0:
                 return
-            self.commit_current(update_list=False)
-            self.load_resource(index)
+            entry = self._resource_entry_at(index)
+            if entry is None:
+                return
+            try:
+                self.commit_current(update_list=False)
+            except Exception as exc:
+                title = "Rótulo desenhado" if self._is_main_flp_mode() else "Recurso de texto"
+                QMessageBox.warning(self, title, str(exc))
+                # Não deixa uma troca de recurso descartar um texto que a fonte
+                # do FLP não consegue representar ou uma edição TXT inválida.
+                old_index = self._active_resource_box_index()
+                if old_index >= 0:
+                    with QSignalBlocker(self.resource_box):
+                        self.resource_box.setCurrentIndex(old_index)
+                return
+            kind, source_index = entry
+            if kind == "flp":
+                self.load_flp_resource(source_index)
+            else:
+                self.load_resource(source_index)
 
         def on_codec_change(self, _text: str):
+            if self._is_main_flp_mode():
+                return
             if _text and self.config.get("codec") != _text:
                 self.config["codec"] = _text
                 write_config(self.config)
@@ -2240,13 +2845,15 @@ if QT_AVAILABLE:
                 return
             try:
                 self.commit_current(update_list=False)
-                self.load_resource(self.resource_box.currentIndex())
+                self.load_resource(self._active_text_resource_index())
             except Exception as exc:
                 QMessageBox.critical(self, "Codificação", str(exc))
 
         def load_resource(self, resource_index: int):
             if resource_index < 0 or resource_index >= len(self.text_resources):
                 return
+            self.active_flp_movie = None
+            self._set_main_flp_mode_ui(False)
             tag = self.text_resources[resource_index]
             codec = self._codec_for_tag(tag)
             self._sync_codec_ui(tag)
@@ -2268,12 +2875,18 @@ if QT_AVAILABLE:
             self.active_resource = resource
             self.resource_messages = resource.messages
             self.current_index = None
-            self.resource_box.setCurrentIndex(resource_index)
+            with QSignalBlocker(self.resource_box):
+                self.resource_box.setCurrentIndex(self._resource_box_index("txt", resource_index))
             self.resource_meta_label.setText(f"{tag.resource_kind} • offset 0x{tag.offset:x} • tag 0x{tag.tag:04x}")
             self.refresh_message_list()
 
         def refresh_message_list(self, *_args):
-            if self._loading or self.active_resource is None:
+            if self._loading:
+                return
+            if self._is_main_flp_mode():
+                self._refresh_flp_label_list()
+                return
+            if self.active_resource is None:
                 return
             keep_index = self.current_index
             query = self.search_entry.text().strip().casefold()
@@ -2335,10 +2948,28 @@ if QT_AVAILABLE:
                 return
             index = int(item.data(Qt.UserRole))
             if self.current_index is not None and self.current_index != index:
-                self.commit_current(update_list=False)
+                try:
+                    self.commit_current(update_list=False)
+                except Exception as exc:
+                    # No FLP, uma letra que não existe na fonte deve permanecer
+                    # no editor para o usuário corrigir, em vez de perder o texto
+                    # ao clicar no próximo rótulo.
+                    QMessageBox.warning(self, "Rótulo desenhado", str(exc))
+                    old_index = self.current_index
+                    if old_index is not None:
+                        for row in range(self.message_table.rowCount()):
+                            old_item = self.message_table.item(row, 0)
+                            if old_item is not None and old_item.data(Qt.UserRole) == old_index:
+                                with QSignalBlocker(self.message_table):
+                                    self.message_table.selectRow(row)
+                                break
+                    return
             self.load_message(index)
 
         def load_message(self, index: int):
+            if self._is_main_flp_mode():
+                self.load_flp_label(index)
+                return
             if index < 0 or index >= len(self.resource_messages):
                 return
             self.current_index = index
@@ -2377,6 +3008,9 @@ if QT_AVAILABLE:
                 self._set_status("Alteracoes pendentes" if self.dirty else "Sem alteracoes")
 
         def commit_current(self, update_list: bool = True):
+            if self._is_main_flp_mode():
+                self._commit_flp_label(update_list)
+                return
             if self.current_index is None or not self.resource_messages or self.active_resource is None or self.active_tag is None:
                 return
             message = self.resource_messages[self.current_index]
@@ -2401,7 +3035,7 @@ if QT_AVAILABLE:
                     return
                 self.active_tag.data = candidate
                 self.dirty = True
-                resource_index = self.resource_box.currentIndex()
+                resource_index = self._active_text_resource_index()
                 self._undo_stack.append((resource_index, self.current_index, old_text))
                 if len(self._undo_stack) > 400:
                     self._undo_stack.pop(0)
@@ -2412,14 +3046,22 @@ if QT_AVAILABLE:
 
         def apply_current(self):
             try:
+                flp_mode = self._is_main_flp_mode()
                 self.commit_current(update_list=False)
                 self.refresh_message_list()
-                self._set_status("Texto aplicado ao WAD em memória")
+                self._set_status(
+                    "Rótulo aplicado ao WAD em memória" if flp_mode
+                    else "Texto aplicado ao WAD em memória"
+                )
             except Exception as exc:
-                QMessageBox.critical(self, "Erro ao aplicar texto", str(exc))
+                QMessageBox.critical(
+                    self,
+                    "Erro ao aplicar rótulo" if self._is_main_flp_mode() else "Erro ao aplicar texto",
+                    str(exc),
+                )
 
         def undo_action(self):
-            if self.active_resource is None or self.current_index is None:
+            if (self.active_resource is None and not self._is_main_flp_mode()) or self.current_index is None:
                 self._set_status("Nada para desfazer")
                 QApplication.beep()
                 return
@@ -2435,7 +3077,7 @@ if QT_AVAILABLE:
         def _resource_parse(self, resource_index: int) -> tuple[WadTag, TextResource]:
             """Parse do recurso no indice pedido (usa o ja carregado quando e o ativo)."""
             tag = self.text_resources[resource_index]
-            if resource_index == self.resource_box.currentIndex() and self.active_resource is not None:
+            if tag is self.active_tag and self.active_resource is not None and not self._is_main_flp_mode():
                 return tag, self.active_resource
             return tag, TextResource(tag.data, self._codec_for_tag(tag))
 
@@ -2619,6 +3261,17 @@ if QT_AVAILABLE:
             if self.wad is None:
                 QMessageBox.information(self, "Localizar/Substituir", "Abra um WAD primeiro.")
                 return
+            if self._is_main_flp_mode():
+                QMessageBox.information(
+                    self, "Localizar/Substituir",
+                    "A substituição em lote é destinada aos recursos TXT.\n\n"
+                    "No StaticLabel FLP, use o filtro da lista de Mensagens e edite "
+                    "cada rótulo preservando a quantidade de linhas.",
+                )
+                return
+            if self._active_text_resource_index() < 0:
+                QMessageBox.information(self, "Localizar/Substituir", "Selecione um recurso TXT primeiro.")
+                return
             dialog = QDialog(self)
             dialog.setWindowTitle("Localizar e substituir")
             dialog.resize(560, 260)
@@ -2659,7 +3312,7 @@ if QT_AVAILABLE:
                 n_res = len(self.text_resources)
                 if n_res == 0:
                     return
-                start_res = max(self.resource_box.currentIndex(), 0)
+                start_res = self._active_text_resource_index()
                 if whole_wad:
                     order = [(start_res + step) % n_res for step in range(n_res)]
                 else:
@@ -2698,7 +3351,7 @@ if QT_AVAILABLE:
                 self.commit_current(update_list=False)
                 case = case_box.isChecked()
                 whole_wad = scope_box.currentText() == "WAD inteiro"
-                indices = range(len(self.text_resources)) if whole_wad else [max(self.resource_box.currentIndex(), 0)]
+                indices = range(len(self.text_resources)) if whole_wad else [self._active_text_resource_index()]
                 total_occurrences = 0
                 total_messages = 0
                 changed_current = False
@@ -2725,7 +3378,7 @@ if QT_AVAILABLE:
                     if changed_here:
                         tag.data = resource.to_bytes()
                         self.dirty = True
-                        if res_index == self.resource_box.currentIndex():
+                        if res_index == self._active_text_resource_index():
                             changed_current = True
                 if total_occurrences:
                     self._redo_stack.clear()
@@ -2753,9 +3406,10 @@ if QT_AVAILABLE:
             dialog.exec()
 
         def _goto_message(self, resource_index: int, message_index: int):
-            if self.resource_box.currentIndex() != resource_index:
+            """Vai a uma mensagem TXT; ``resource_index`` é índice de TXT, não UI."""
+            if self._active_text_resource_index() != resource_index:
                 with QSignalBlocker(self.resource_box):
-                    self.resource_box.setCurrentIndex(resource_index)
+                    self.resource_box.setCurrentIndex(self._resource_box_index("txt", resource_index))
                 self.load_resource(resource_index)
             self.current_index = message_index
             self.refresh_message_list()
@@ -2928,6 +3582,9 @@ if QT_AVAILABLE:
                                    *self._placement_ids())
 
         def export_txt(self):
+            if self._is_main_flp_mode():
+                QMessageBox.information(self, "Exportar recurso", "O FLP é um recurso binário; use Salvar WAD como para preservar seus rótulos.")
+                return
             data = self._active_resource_bytes()
             if data is None:
                 return
@@ -2945,6 +3602,9 @@ if QT_AVAILABLE:
                 QMessageBox.critical(self, "Erro ao exportar", str(exc))
 
         def import_txt(self):
+            if self._is_main_flp_mode():
+                QMessageBox.information(self, "Importar recurso", "StaticLabels FLP não aceitam importação TXT; edite um rótulo na tela principal e salve o WAD.")
+                return
             if self.active_tag is None:
                 return
             start_dir = self.config.get("last_save_dir") or self.config.get("last_open_dir") or ""
@@ -2969,7 +3629,7 @@ if QT_AVAILABLE:
             return self.active_tag.data if self.active_tag is not None else None
 
         def show_static_labels(self):
-            """Editor de rótulos desenhados (StaticLabels) dos filmes FLP.
+            """Editor avançado de rótulos desenhados (StaticLabels) dos filmes FLP.
 
             Texto "assado" no filme (glifo + avanço, na fonte do próprio
             FLP) — não passa pelo MSGS. Ex.: "Total PlayTime" na STATUS.
@@ -2981,18 +3641,22 @@ if QT_AVAILABLE:
             if self.wad is None:
                 QMessageBox.information(self, "Rótulos desenhados", "Abra um WAD primeiro.")
                 return
+            if self._is_main_flp_mode():
+                self.message_table.setFocus()
+                self._set_status("Os rótulos deste FLP já estão disponíveis na lista principal")
+                return
             parsed = []
             for tag in self.wad.tags:
                 if tag.upper_name.startswith("FLP_") and tag.data and not tag.zero_sized:
                     try:
-                        parsed.append((tag, FLPMovie(tag.data)))
+                        parsed.append((tag, open_flp_movie(tag.data)))
                     except Exception:
                         continue
             if not parsed:
                 QMessageBox.information(
                     self, "Rótulos desenhados",
-                    "Nenhum FLP compatível (formato GoW2) neste WAD.\n"
-                    "Rótulos desenhados ficam em recursos como FLP_HUDA/FLP_HUD.")
+                    "Nenhum FLP compatível (GoW1 ou GoW2) neste WAD.\n"
+                    "Rótulos desenhados ficam em recursos como FLP_Shell, FLP_HUD ou FLP_HUDA.")
                 return
 
             dlg = QDialog(self)
@@ -3005,18 +3669,20 @@ if QT_AVAILABLE:
             note.setWordWrap(True)
             lay.addWidget(note)
             flp_box = QComboBox()
-            for tag, _movie in parsed:
-                flp_box.addItem(f"{tag.name} • {len(tag.data):,} bytes")
+            for tag, movie in parsed:
+                flp_box.addItem(f"{tag.name} • {movie.format_name} • {len(tag.data):,} bytes")
             lay.addWidget(flp_box)
             label_list = QListWidget()
             lay.addWidget(label_list, 1)
             info = QLabel("")
             info.setWordWrap(True)
             lay.addWidget(info)
-            row = QHBoxLayout()
-            row.addWidget(QLabel("Texto:"))
-            edit = QLineEdit()
-            row.addWidget(edit, 1)
+            row = QVBoxLayout()
+            row.addWidget(QLabel("Texto (mantenha o número de linhas indicado, quando houver mais de uma):"))
+            edit = QPlainTextEdit()
+            edit.setLineWrapMode(QPlainTextEdit.WidgetWidth)
+            edit.setFixedHeight(82)
+            row.addWidget(edit)
             lay.addLayout(row)
             btns = QHBoxLayout()
             apply_btn = QPushButton("Aplicar ao rótulo")
@@ -3042,8 +3708,13 @@ if QT_AVAILABLE:
                         label_list.addItem(f"[{i}] (erro: {exc})")
                         continue
                     txt = lbl["text"] if lbl["text"] else "(vazio)"
+                    # Um StaticLabel com vários blocos normalmente representa
+                    # várias linhas do mesmo aviso; mantenha-o legível na lista.
+                    txt = txt.replace("\n", "  ↵  ")
+                    line_count = int(lbl.get("line_count", 1) or 1)
+                    line_mark = f" • {line_count} linhas" if line_count > 1 else ""
                     mark = "" if lbl["editable"] else "  [somente leitura]"
-                    label_list.addItem(f"[{i}] {txt} • {lbl['glyph_count']} glifo(s){mark}")
+                    label_list.addItem(f"[{i}] {txt} • {lbl['glyph_count']} glifo(s){line_mark}{mark}")
 
             def on_flp_change(idx):
                 if idx < 0:
@@ -3052,7 +3723,7 @@ if QT_AVAILABLE:
                 state["label"] = -1
                 refresh_labels()
                 edit.clear()
-                edit.setEnabled(False)
+                edit.setReadOnly(True)
                 apply_btn.setEnabled(False)
                 restore_btn.setEnabled(False)
                 info.setText("")
@@ -3061,16 +3732,19 @@ if QT_AVAILABLE:
                 state["label"] = row
                 if row < 0:
                     edit.clear()
-                    edit.setEnabled(False)
+                    edit.setReadOnly(True)
                     apply_btn.setEnabled(False)
                     info.setText("")
                     return
                 tag, movie = parsed[state["flp"]]
                 lbl = movie.label(row)
-                edit.setText(lbl["text"])
-                edit.setEnabled(lbl["editable"])
+                edit.setPlainText(lbl["text"])
+                edit.setReadOnly(not lbl["editable"])
                 apply_btn.setEnabled(lbl["editable"])
-                info.setText(lbl["detail"])
+                lines = int(lbl.get("line_count", 1) or 1)
+                line_note = (f"\nMantenha exatamente {lines} linhas; cada linha preserva "
+                             "sua posição no layout." if lines > 1 else "")
+                info.setText(lbl["detail"] + line_note)
                 restore_btn.setEnabled(bytes(tag.data) != originals[id(tag)])
 
             def do_apply():
@@ -3079,12 +3753,12 @@ if QT_AVAILABLE:
                 if row < 0:
                     return
                 try:
-                    new_data = movie.encode_label(row, edit.text().strip())
+                    new_data = movie.encode_label(row, edit.toPlainText().strip())
                 except Exception as exc:
                     QMessageBox.critical(dlg, "Rótulo desenhado", str(exc))
                     return
                 tag.data = new_data
-                parsed[state["flp"]] = (tag, FLPMovie(new_data))
+                parsed[state["flp"]] = (tag, open_flp_movie(new_data))
                 self.dirty = True
                 self._refresh_dirty()
                 refresh_labels()
@@ -3095,7 +3769,7 @@ if QT_AVAILABLE:
             def do_restore():
                 tag, _movie = parsed[state["flp"]]
                 tag.data = originals[id(tag)]
-                parsed[state["flp"]] = (tag, FLPMovie(tag.data))
+                parsed[state["flp"]] = (tag, open_flp_movie(tag.data))
                 self.dirty = True
                 self._refresh_dirty()
                 refresh_labels()
@@ -3108,7 +3782,7 @@ if QT_AVAILABLE:
             apply_btn.clicked.connect(do_apply)
             restore_btn.clicked.connect(do_restore)
             close_btn.clicked.connect(dlg.accept)
-            dlg.resize(660, 540)
+            dlg.resize(660, 620)
             on_flp_change(0)
             dlg.exec()
 

@@ -5,8 +5,8 @@
 > 2026-09-13): **sempre atualizar/gerar este arquivo após qualquer alteração na tool.**
 > Em um chat novo, anexe este arquivo (+ os arquivos relevantes) para retomar de onde parou.
 
-Última atualização: **2026-09-16** (Sessão 9 — acentos ã Ã õ Õ no R_SHELLU europeu)
-Versão do documento: **2.5** (substitui o antigo `CONTEXTO_GOW_TEXT_EDITOR_HANDOFF.md/.txt`)
+Última atualização: **2026-09-22** (Sessão 13 — StaticLabels multilinha editáveis)
+Versão do documento: **2.9** (substitui o antigo `CONTEXTO_GOW_TEXT_EDITOR_HANDOFF.md/.txt`)
 
 ---
 
@@ -40,11 +40,23 @@ Versão do documento: **2.5** (substitui o antigo `CONTEXTO_GOW_TEXT_EDITOR_HAND
   DoMsgPage, macros), localizar/substituir, undo/redo, importar/exportar recurso.
 - Prévia CRT/Layout com `QPainter` (geometria real medida no FLP_HUD; 4:3/16:9,
   alinhamento, âncora, espaçamento).
+- Editor de StaticLabels agora cobre **GoW2 e GoW1**: `FLP_HUDA`/filmes GoW2 e
+  `FLP_Shell` do GoW1. O shell GoW1 abre mesmo sem recursos `.TXT` e, nesse
+  caso, seus rótulos aparecem diretamente nos painéis principais (lista
+  central + editor à direita), sem exigir o menu Ferramentas. Rótulos de um
+  ou vários blocos são editáveis: em multilinha, a UI exige preservar o mesmo
+  número de linhas e reemite cada uma no bloco/âncora original.
 
 ### 2.2 Interface (estado atual)
 - **Acento visual VERMELHO** (era laranja): paleta
   `WAD_ACCENT #C03030 / WAD_ACCENT_HOV #E14B4B / WAD_ACCENT_DIM #5C1515`;
   seleção de listas/tabela `#3A0C0C`; avisos de overflow/ID duplicado `#E15B5B`.
+- **Shell GoW1 sem TXT:** se o WAD só traz `FLP_Shell`, o painel esquerdo muda
+  para **FILMES / RÓTULOS**, a lista central para **RÓTULOS DESENHADOS** e o
+  editor para **TEXTO DO RÓTULO**. A lista marca multilinhas com `• N linhas`
+  e o status lembra manter N linhas. Os botões estruturais (+Nova/Duplicar/
+  Excluir), codec, importar/exportar e localizar/substituir ficam desativados;
+  **Aplicar rótulo** grava somente o StaticLabel selecionado em memória.
 - **Imagem de fundo personalizada** — menu `Visualizar > Imagem de fundo`:
   - `Definir imagem...` (PNG/JPG/JPEG/BMP/GIF/WEBP): copia a escolha para
     `imagens_de_fundo/` já com o nome `background.*` e aplica na hora;
@@ -78,8 +90,8 @@ Versão do documento: **2.5** (substitui o antigo `CONTEXTO_GOW_TEXT_EDITOR_HAND
 ### 2.3 Arquivos da tool (pasta `GodOfWarTextEditor_Aprimorado_2026-09-12/`)
 | Arquivo | Papel |
 |---|---|
-| `gow_text_editor.py` | Fonte única da tool (núcleo + UI Qt). ~2.900 linhas |
-| `test_core.py` | Testes de núcleo (ver seção 6) |
+| `gow_text_editor.py` | Fonte única da tool (núcleo + UI Qt), incluindo parsers FLP GoW2 e GoW1 |
+| `tests/test_gow1_flp.py` | Testes sintéticos de StaticLabels GoW1/GoW2 (sem WADs proprietários) |
 | `flp_gow2.py` | Parser/marshal FLP GoW2 (Sessão 4; usado pelo patcher do Shell) |
 | `adicionar_acentos_shell.py` | Gera `R_SHELLA_PTBR.WAD` a partir dos WADs originais |
 | `GODOFWAR.TTF` | Fonte do título |
@@ -418,7 +430,7 @@ inglês britânico). Fonte dos tiles: o mesmo R_PERMA traduzido do usuário.
   FLP_HUDU/MDL_HUDU_0 (parts 410-413, clones das letras 61/35/75/49,
   joints 62/36/76/50 — estrutura idêntica ao shell, blocos 224B/raw 156B)
   + GFX pintada + msgs 36-45 RECOLOCADAS no MSGS_TXT (antes do padding
-    final; 798 corpos intactos). Banner *4006*="Opções"/*4600*="Status"
+   final; 798 corpos intactos). Banner *4006*="Opções"/*4600*="Status"
   renderizam pela HUDU → consertam-se sozinhos. AGUARDA TESTE.
   ARMADILHA: no patcher do PLOCU, VITIMAS deve ser consultado via
   VITIMA_DE (til->vitima); indexar pelo char do til zera ã/Ã/õ/Õ em vez
@@ -449,6 +461,177 @@ inglês britânico). Fonte dos tiles: o mesmo R_PERMA traduzido do usuário.
 
 ---
 
+### Sessão 10 (2026-09-22) — suporte ao R_SHELL do GoW I / `FLP_Shell`
+Pedido: analisar o shell GoW1 já traduzido e fazer a tool ler seus textos, que
+não apareciam na lista de recursos.
+
+- **Descoberta (confirmada no `LOCALIZATION.md` do god_of_war_browser):** o
+  `R_SHELL.WAD` do GoW I não tem `msgs_*.txt`/`MSGS_TXT`. Todo texto do menu
+  principal é StaticLabel dentro de `FLP_Shell`, isto é, uma lista de comandos
+  de desenho com `glyph id + avanço`. Não era falha de encoding nem TXT oculto.
+- **Amostra real analisada:** `R_SHELL.WAD` PT-BR fornecido pelo usuário:
+  3.034.480 B, 1.010 tags, zero recursos TXT candidatos; `FLP_Shell` na tag
+  138, 175.788 B, magic `0x21`, 1 fonte, 120 StaticLabels. Leitura conferida
+  para `= Selecionar`, `Opções`, `Vibração:`, `Exército de Hades`,
+  `Espartano (Difícil)` e avisos multilinha.
+- **Implementado no núcleo:** `FLPMovieGoW1`, baseado no parser do browser:
+  header de 0x60 B; GH count @0x0C, refs @0x14, fonts @0x1C, statics @0x24;
+  referência de mesh/material em +0/+2; font `chars/flags` em +0/+0x0C;
+  StaticLabel header de 0x24 B, tamanho do stream em +0x14. A factory
+  `open_flp_movie()` escolhe GoW1 (magic 0x21) ou GoW2 (0x1B).
+- **Acentos:** `decode_ids()` deixou de restringir o char_map a ASCII. Índices
+  CP1252 são mostrados como Unicode visual, portanto 0xE3/0xE9/0xE7 viram
+  `ã`/`é`/`ç` na UI. A conversão inversa para o char_map também aceita CP1252.
+- **UI inicial (substituída pelo fluxo direto da Sessão 11):** WADs sem TXT
+  passaram a abrir normalmente e o diálogo `Ferramentas > Rótulos desenhados
+  do filme (FLP)...` mostrava `FLP_Shell • GoW1`. Labels de vários blocos são
+  legíveis (separadas por `↵`) mas continuam somente leitura. Um bloco continua
+  editável e preserva cabeçalho, avanços conhecidos e o resto do FLP bruto.
+- **Validação feita:** `Opções -> Menu` aplicado em memória pela UI offscreen,
+  reparseado como GoW1 e reembutido no WAD; todas as outras tags serializadas
+  permaneceram byte-idênticas. O no-op `Opções -> Opções` mantém o FLP inteiro
+  byte-idêntico. `tests/test_gow1_flp.py` usa FLPs sintéticos sem assets do
+  jogo e cobre despacho GoW1/GoW2, acentos, no-op e edição/reparse. Teste em
+  PCSX2/hardware do WAD salvo ainda é pendente.
+
+### Sessão 11 (2026-09-22) — `FLP_Shell` direto na tela principal
+Pedido do usuário após validar a primeira UI: eliminar o passo complexo
+`Ferramentas > Rótulos desenhados...` e abrir os textos do shell diretamente
+na área **Mensagens**.
+
+- **Fluxo novo:** se o WAD não tiver TXT e tiver FLP com StaticLabels, a lista
+  esquerda passa a conter `FLP_Shell • GoW1 • 120 rótulos`; a coluna central
+  mostra `[índice] texto`, aceita filtro por índice/conteúdo e a direita abre o
+  texto selecionado. Para `R_SHELL.WAD`, a seleção inicial é `[0] = Selecionar`.
+- **Edição segura no mesmo fluxo:** títulos de painel mudam para **FILMES /
+  RÓTULOS**, **RÓTULOS DESENHADOS** e **TEXTO DO RÓTULO**. O botão vira
+  **Aplicar rótulo**; ele usa `encode_label()` e reabre o FLP. Na versão
+  inicial da Sessão 11, multi-blocos ficavam somente leitura; isso foi
+  substituído pela edição por linha da Sessão 13.
+- **Controles TXT que não fazem sentido no FLP** são desativados (+Nova,
+  Duplicar, Excluir, codificação, importar/exportar, localizar/substituir e
+  undo/redo global). O Ctrl+Z do campo ainda serve antes de aplicar; salvar é
+  sempre pelo WAD inteiro/Salvar como.
+- **Compatibilidade:** WADs com TXT continuam no modo normal; FLPs desses
+  WADs seguem acessíveis no diálogo avançado de Ferramentas. Ao acioná-lo em
+  um shell já no modo principal, o foco retorna para a lista em vez de abrir
+  um diálogo redundante.
+- **Validação UI:** smoke test offscreen no R_SHELL real confirmou 1 recurso
+  `FLP_Shell`, 120 linhas, `Opções -> Menu` pela tela principal e label [9]
+  multilinha bloqueado. Regressão offscreen com WAD GoW1 sintético contendo
+  `TEST.TXT` confirmou 2 mensagens e todos os controles TXT no modo normal.
+  O WAD real fornecido não foi gravado.
+
+### Sessão 12 (2026-09-22) — pacote Windows/EXE atualizado
+Pedido do usuário: compilar/entregar a tool atualizada como executável Windows.
+
+- **Entrega criada:** `tool/GodOfWarTextEditor_Aprimorado_2026-09-22_EXE.zip`
+  (33.593.905 B; SHA-256
+  `429cc7c1542cea96078b3fe8604c4a0c4afda0e9abc7e4f285cb65831a2e907b`).
+  O ZIP contém a pasta `GodOfWarTextEditor_Aprimorado_2026-09-22/`, o launcher
+  `GodOfWarTextEditor.exe` x64, `gow_text_editor.py` da Sessão 11,
+  `LEIA-ME.txt`, ícone/fundo e `app\\` com Python 3.13.1 + PySide6 6.11.2.
+- **Launcher:** o binário PE continua com SHA-256
+  `7c43368fd54d101fa0d3400d63dc8ac122782f2702f2e2248156497858dde950`.
+  Ele já procura `app\\python.exe` e `gow_text_editor.py` ao lado; não precisava
+  mudar só porque a lógica Python mudou. A distribuição foi reconstruída com
+  a fonte atual e o runtime portátil completo, pronta para duplo clique após
+  extrair a pasta inteira.
+- **Validação de pacote:** `unzip -t` passou; hashes da fonte dentro/fora do
+  ZIP coincidem (`gow_text_editor.py`:
+  `621db615f50e18857cdd1e0a4d673c7267bca0f87f03e7f251864f4a15296c4a`);
+  scan confirmou ausência de WAD, `.bak`, `.ini` ou log no pacote. O WAD real
+  de referência não foi incluído nem escrito.
+- **Limite conhecido:** executável/ZIP foi validado estruturalmente; o teste
+  de um WAD editado salvo no PCSX2/hardware ainda continua pendente antes de
+  distribuir qualquer WAD resultante.
+
+### Sessão 13 (2026-09-22) — StaticLabels multilinha editáveis
+Problema reportado pelo usuário após abrir o EXE: avisos do shell, como
+`Modo Progressivo\nfoi alterado.`, apareciam como **somente leitura** porque
+possuem 2+ RenderCommands/linhas dentro do mesmo StaticLabel.
+
+- **Verificação de formato antes de alterar:** `staticlabel.go` do
+  `god_of_war_browser` confirma que `MarshalRenderCommandList()` escreve um
+  cabeçalho de comando e uma lista de glifos para **cada** RenderCommand;
+  `MarshalStruct/MarshalData` conserva o tamanho cru GoW1 e pad4 externo.
+  No R_SHELL real, label [93] tem dois cabeçalhos `0x8F`/`0x8B`, ambos com
+  GH=12/fonte 0 e X/Y próprios; label [91] tem cinco. Portanto é seguro
+  reemitir cada linha no bloco correspondente, sem fundi-las.
+- **Implementação:** `parse_commands()` agora guarda `header_end`. `label()`
+  expõe `line_count` e torna editáveis blocos com fonte/glifos resolvidos.
+  `encode_label()` normaliza LF, exige exatamente a mesma quantidade de
+  linhas, copia o cabeçalho de cada bloco byte a byte e reconstrói somente sua
+  contagem/lista de `(glyph, advance)`. Avanços existentes são preservados e
+  glyphs novos recebem largura natural multiplicada pelo fator daquele bloco.
+  Linha extra/removida, linha vazia, glifo ausente ou >255 glyphs é recusado.
+- **UI:** todos os 120 labels do `FLP_Shell` real ficaram editáveis. Multilinha
+  aparece como `• N linhas`, abre em `QPlainTextEdit` e mostra no status
+  `mantenha N linhas (uma por bloco)`. O diálogo FLP avançado também migrou de
+  `QLineEdit` para `QPlainTextEdit`, portanto não colapsa quebras de linha.
+- **Validação:** novo teste sintético cobre no-op, edição de duas linhas,
+  preservação de flags/GH/escala/X/Y e recusa de contagem diferente. No WAD
+  real: no-op dos 120 labels foi byte-exato; label [93] editou/reparseou;
+  label [9] de 3 linhas editou/reparseou e uma serialização/reabertura do WAD
+  preservou todas as tags não-`FLP_Shell`. UI offscreen confirmou [93] e [91]
+  editáveis; modal avançado sintético confirmou multilinha. O WAD fornecido
+  nunca foi salvo/modificado.
+- **Entrega R2:** `tool/GodOfWarTextEditor_Aprimorado_2026-09-22_R2_EXE.zip`
+  (33.596.031 B; SHA-256
+  `cdb7dd3d3f4d09ab913347528f5ba88d69e1e77ddda77655b2734ad513c674bd`).
+  Contém o launcher x64 + runtime portátil da Sessão 12 e a fonte da Sessão
+  13 (`gow_text_editor.py` SHA-256
+  `774104bdef33628bc89e6f199203a0f4b92333eb7de082e18e9e492bea605b0f`).
+  `unzip -t` passou; não há WAD, `.bak`, `.ini` ou log no ZIP.
+
+### Sessão 14 (2026-09-22) — TXT + StaticLabels FLP juntos na tela principal (R3)
+Pedido do usuário: em WADs GoW1 como `R_PERM`/`R_PERMA`, `Curiosidade.txt` e
+`MSGS_en.txt` continuavam visíveis na tela principal, mas `FLP_HUD` só aparecia
+no diálogo avançado porque a UI anterior só montava `main_flp_resources` quando
+**não** havia TXT. O pedido foi manter os TXT e acrescentar os FLPs navegáveis
+na mesma lista de recursos.
+
+- **Implementação:** `load_wad_path()` agora coleta todos os FLPs parseáveis com
+  StaticLabels independentemente de haver TXT. A nova lista virtual
+  `main_resource_entries` guarda pares `("txt", índice em text_resources)` ou
+  `("flp", índice em main_flp_resources)`. O painel esquerdo lista primeiro os
+  TXT normais e depois itens como `FLP_HUD • StaticLabels • GoW1 • N rótulos`.
+- **Troca segura de contexto:** `on_resource_change()` resolve a entrada virtual
+  antes de carregar. `load_resource()`/`load_flp_resource()` fazem a conversão
+  inversa para selecionar a linha visual certa. Codec, commit, undo global TXT,
+  parse interno, localizar/substituir e `_goto_message()` deixaram de assumir
+  que `resource_box.currentIndex()` era um índice direto de `text_resources`.
+- **Fluxo visível:** ao clicar em `FLP_HUD`, a lista central vira
+  **RÓTULOS DESENHADOS** e a direita usa o mesmo `QPlainTextEdit`/Aplicar rótulo
+  seguro da Sessão 13. Ao voltar a `Curiosidade.txt`/`MSGS_en.txt`, voltam as
+  mensagens TXT e seus controles. O título do painel passa a
+  **RECURSOS / RÓTULOS** quando o WAD possui ambos os tipos.
+- **Segurança:** a substituição em lote continua propositalmente limitada a TXT.
+  Fazer uma troca cega em vários StaticLabels exigiria validar por rótulo os
+  glifos da fonte e a contagem de blocos; no FLP, o usuário usa o filtro e edita
+  um rótulo por vez. A regra multilinha permanece: não adicionar/remover/reordenar
+  linhas e preservar RenderCommands, âncoras, escala, cor, flags e fontes.
+- **R_SHELL somente leitura:** a captura do usuário com a frase “edição ainda é
+  suportada apenas para 1 bloco” foi identificada como o pacote R1 antigo. A R2
+  e esta R3 mantêm `[93] Modo Progressivo / foi alterado.` editável quando os
+  glifos/fonte são resolvidos; não foi atribuída uma causa em bytes ao R_PERMA,
+  pois o WAD correspondente não foi disponibilizado nesta sessão.
+- **Regressão:** `tests/test_gow1_flp.py` ganhou um WAD sintético GoW1 com
+  `Curiosidade.txt` + `FLP_HUD`; o teste Qt carrega a janela, edita TXT, troca
+  para FLP, edita o label, desfaz o TXT enquanto o FLP está ativo e volta ao TXT.
+  Resultado com runtime Qt offscreen: **6/6 OK**. O smoke no `R_SHELL.WAD` real
+  confirmou 1 FLP/120 labels, `[93]` editável e no-op byte-exato; SHA-256 do WAD
+  de referência permaneceu `f7aa847414922256c501b00bd682e6ea11223be3448d9a2aad41cfc76633488c`.
+- **Entrega R3:** `tool/GodOfWarTextEditor_Aprimorado_2026-09-22_R3_EXE.zip`
+  (33.749.916 B; SHA-256
+  `b9b9d559ad927e3e04f7492478122c9df9bb31c7e0ee8619ea81db20dbc8add4`).
+  Fonte incorporada `gow_text_editor.py` SHA-256
+  `a0b3b738455a6e90efe93cdddf0ed09b2469b25bd429b8bdd879e9f4acb662da`.
+  `unzip -t` passou e a inspeção confirmou ausência de `.wad`, `.bak`, `.ini`
+  e `.log`. Nenhum WAD do usuário foi gravado ou incluído.
+
+---
+
 ## 5. FORMATOS BINÁRIOS (conhecimento consolidado nas sessões)
 
 ### 5.1 WAD (núcleo da tool, já documentado no código)
@@ -472,7 +655,24 @@ mudou (garantia byte-exata).
 - **round-trip exato confirmado** (FLP_ShellA e FLP_HUDA reconstruem byte a byte).
 - Fonte flags 0x5 = mapa 256 entradas + refs com material por glifo.
 
-### 5.3 Mesh GoW2 (`MDL_*_0`, magic 0x0001000F)
+### 5.3 FLP GoW1 / `FLP_Shell` (Sessão 10; base: god_of_war_browser)
+- Magic `0x21`, header físico de **0x60 B** (GoW2 usa `0x1B`/0x5C).
+- Counts usados pelo editor: globalHandlers @0x0C, meshPartRefs @0x14,
+  fonts @0x1C, staticLabels @0x24, dynamicLabels @0x2C e stringsSize @0x58.
+- Cada MeshPartReference continua com 8 B, mas no GoW1 o `meshPartIndex` está
+  em +0 e `matCount` em +2 (no GoW2 eles ficam em +4/+6).
+- Font header continua 0x24 B; no GoW1 `charsCount` fica em +0 e `flags` em
+  +0x0C. As larguras e o char_map seguem o mesmo alinhamento de 4 B.
+- StaticLabel: header de **0x24 B**; transformação em +0 e tamanho cru do
+  render-command stream em +0x14. O stream é alinhado externamente em 4 B;
+  ao editar, o editor mantém o tamanho cru no header e só então acrescenta
+  padding. Isso espelha `StaticLabel.MarshalStruct/MarshalData` do browser.
+- Comando de desenho é o mesmo: `0x80|flags`, campos opcionais e depois
+  contagem u8 + pares `(glyph u16, advance i16/16)`. Vários comandos são
+  linhas/blocos distintos. O editor os reemite um a um, preservando os
+  cabeçalhos/âncoras, e exige que a edição tenha o mesmo número de linhas.
+
+### 5.4 Mesh GoW2 (`MDL_*_0`, magic 0x0001000F)
 - Header 0x18: magic, mdlCommentStart u32@4, partsCount u16@8, offsets u32@0x18+N*4;
 - sem vetores nos meshes de fonte (offsets dos parts começam logo após a tabela);
 - tail após `mdlCommentStart`: nome "isAnimated" + KeepJoint (80 bytes no Shell);
@@ -493,7 +693,7 @@ mudou (garantia byte-exata).
   UVs/joint no raw; `with_appended_parts()` em `adicionar_acentos_shell.py` refaz
   header/tabela de offsets/mdlCommentStart.
 
-### 5.4 GFX/PAL/TXR (textura PS2)
+### 5.5 GFX/PAL/TXR (textura PS2)
 - GFX (magic 0xC): w u32@4, h u32@8, encoding u32@0xC, bpi u32@0x10, blocks u32@0x14,
   dados a partir de 0x18 (RealHeight = h/blocks);
 - **atlas da fonte: 256×256 PSMT4 (4bpp)** — PALETA de 16 cores em RGBA8888
@@ -511,20 +711,29 @@ mudou (garantia byte-exata).
 
 ```bash
 # 1) compilação
-python3 -m py_compile gow_text_editor.py test_core.py
+python3 -m py_compile \
+  tool/GodOfWarTextEditor_Aprimorado_2026-09-12/gow_text_editor.py \
+  tests/test_gow1_flp.py
 
-# 2) testes de núcleo (todos devem passar; o WAD real exigido é o R_PERM.GOW1 do
-#    chat antigo — sem ele, rodar os sintéticos + round-trip do R_PERMA/R_SHELLA)
-python3 test_core.py
-# ou: test_gow2_visual_accent_dictionary_roundtrip,
-#     test_unchanged_nonzero_padding_is_byte_exact,
-#     test_runtime_msgs_txt_and_marker_variants + wad.serialize() == wad.raw
+# 2) testes sintéticos versionados (não exigem WAD proprietário)
+python3 -m unittest discover -s tests -v
+# Inclui despacho FLP GoW1/GoW2, acentos CP1252, no-op byte-exato, edição/
+# reparse, preservação de cabeçalhos/âncoras multilinha e WAD sintético com
+# TXT + FLP_HUD coexistindo. Com PySide6 disponível, também executa o smoke
+# Qt TXT -> FLP -> TXT e a verificação de undo/mapeamento de índices.
 
-# 3) UI offscreen (sandbox precisa de: pip install PySide6 +
-#    LD_LIBRARY_PATH com a libxkbcommon do opencv_python.libs +
+# 3) validação real, somente em cópia privada de WAD
+# - abrir R_SHELL.WAD; confirmar 120 labels no FLP_Shell;
+# - editar um rótulo de 1 bloco e um multilinha (mantendo N linhas),
+#   Salvar como..., reabrir e testar em PCSX2;
+# - diff: só a tag FLP editada pode mudar.
+
+# 4) UI offscreen (sandbox: PySide6 + libxkbcommon +
 #    QT_QPA_PLATFORM=offscreen + GOW2TE_INI=/tmp/gow_test.ini)
-#    - grab() da janela para screenshots;
-#    - testar menus/detecções alteradas por script (QFileDialog simulado).
+# - abrir por load_wad_path() um WAD sem TXT e conferir FLP_Shell/120 rótulos;
+# - abrir WAD sintético ou cópia privada com TXT + FLP_HUD, alternar TXT -> FLP
+#   -> TXT e confirmar que aplicar/undo/navegação usam o recurso correto;
+# - editar um bloco e um rótulo multilinha mantendo a mesma contagem de linhas.
 ```
 
 No Windows do usuário: `python -m pip install PySide6` + `python gow_text_editor.py`.
@@ -543,22 +752,27 @@ No Windows do usuário: `python -m pip install PySide6` + `python gow_text_edito
   `gow_text_editor.py` da pasta. Validar sempre no Wine antes de entregar.
 - `R_SHELLA_PTBR.WAD` aguarda **teste em jogo** pelo usuário (menus com ã/Ã/õ/Õ);
   o .EXE também aguarda teste em Windows real (ícone + duplo clique).
-- Testes do `test_core.py` que dependem do `R_PERM.WAD` GoW1 do chat antigo não
-  rodam sem esse arquivo (os caminhos apontam para `/home/user/uploads/`).
+- StaticLabels multilinha agora preservam os blocos existentes, mas não
+  suportam **adicionar/remover/reordenar** linhas automaticamente: mantenha a
+  contagem original. Labels com fonte/glifos não resolvidos continuam somente
+  leitura até existir uma estratégia específica para eles.
+- O suporte ao `R_SHELL.WAD` foi validado estruturalmente e pela UI offscreen;
+  falta o teste de um WAD salvo no PCSX2/hardware antes de distribuir a saída.
 
 ---
 
 ## 8. REGRAS PARA SESSÕES FUTURAS (acordo com o usuário)
 
 - **GitHub do projeto (desde 2026-09-16)**: `github.com/gushetfield-81/GOW-TEXT-EDITOR`
-  (PRIVADO, branch `main`). Toda entrega nova de arquivo deve ser commitada e enviada
+  (branch `main`; a visibilidade pode ser alterada pelo autor). Toda entrega nova de arquivo deve ser commitada e enviada
   pelo agente na mesma rodada: atualizar `god-of-war-text-editor/` + rodar
   `bash github_sync.sh "mensagem do commit"`. Token fine-grained em `/home/user/.github_token`
   (NUNCA versionar nem expor no chat). WADs do jogo NUNCA vão ao repo (copyright);
-  vão tool/, patchers/, LEIA-MEs, CONTEXTO e previews — E o pacote
-  `GodOfWarTextEditor_Aprimorado_2026-09-12_EXE.zip` (33,6 MB), que desde
-  2026-09-16 é distribuído no repo (tool/) e na **Release v1.0** junto do
-  `gow_text_editor.py` (downloads em 1 clique). O usuário também criou a
+  vão tool/, patchers/, LEIA-MEs, CONTEXTO e previews — E o pacote atual
+  `GodOfWarTextEditor_Aprimorado_2026-09-22_R3_EXE.zip` (33,7 MB), com os
+  ZIPs R2/R1 `2026-09-22` e `2026-09-12` preservados como históricos. Ao publicar,
+  criar/atualizar uma release para o ZIP atual junto do `gow_text_editor.py`
+  (downloads em 1 clique). O usuário também criou a
   própria release ('GOW TEXT EDITOR', untagged) — preservar. O usuário fez o upload inicial
   pelo site (commit "Add files via upload") — preservar arquivos dele no sync.
 
@@ -579,9 +793,13 @@ No Windows do usuário: `python -m pip install PySide6` + `python gow_text_edito
 
 ```
 /home/user/
-├── CONTEXTO_MESTRE_GOW_TEXT_EDITOR.md                    <- ESTE arquivo (v2.1)
-├── GodOfWarTextEditor_Aprimorado_2026-09-12_EXE.zip      <- ENTREGA atual (Sessão 5:
-│                                                            tool + exe + app\ portátil)
+├── CONTEXTO_MESTRE_GOW_TEXT_EDITOR.md                    <- ESTE arquivo (v2.9)
+├── GOW-TEXT-EDITOR/tool/
+│   ├── GodOfWarTextEditor_Aprimorado_2026-09-22_R3_EXE.zip <- ENTREGA atual (Sessão 14:
+│   │                                                          TXT + FLP mistos + EXE + app\ portátil)
+│   ├── GodOfWarTextEditor_Aprimorado_2026-09-22_R2_EXE.zip <- histórico (Sessão 13: multilinha)
+│   ├── GodOfWarTextEditor_Aprimorado_2026-09-22_EXE.zip  <- histórico R1 / Sessão 12
+│   └── GodOfWarTextEditor_Aprimorado_2026-09-12_EXE.zip  <- histórico / Release v1.0
 ├── saida_shell/
 │   ├── R_SHELLA_PTBR.WAD                                 <- Sessão 4 (teste em jogo pendente)
 │   ├── adicionar_acentos_shell.py, flp_gow2.py

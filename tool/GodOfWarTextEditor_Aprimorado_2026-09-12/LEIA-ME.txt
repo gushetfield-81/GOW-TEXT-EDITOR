@@ -136,9 +136,10 @@ EXECUTÁVEL .EXE (2026-09-13)
   Executar assim mesmo" na primeira execução.
 - Se um dia o programa não abrir, procure o arquivo erro_python.log na pasta
   da tool: o EXE grava nele qualquer erro do Python para diagnóstico.
-- Distribuição recomendada: o pacote GodOfWarTextEditor_Aprimorado_2026-09-12_EXE.zip,
+- Distribuição recomendada: o pacote GodOfWarTextEditor_Aprimorado_2026-09-22_R3_EXE.zip,
   que já traz a pasta app\ completa (Python 3.13.1 + PySide6 6.11.2 Essentials;
-  ~65 MB extraídos, ~33 MB compactados).
+  ~65 MB extraídos, ~33 MB compactados). Extraia a pasta completa antes de
+  abrir o EXE — ele precisa do subdiretório app\ quando não há Python instalado.
 
 NOVIDADES DESTA REVISÃO (2026-09-13)
 - Acento visual da interface mudado de laranja para VERMELHO em toda a tool:
@@ -199,10 +200,50 @@ RÓTULOS DESENHADOS DO FILME — FLP (2026-09-16)
   FLP) e permite trocar o texto. O avanço das letras é herdado do
   rótulo original (com fallback largura_natural x fator_medido), e o
   cabeçalho do bloco é preservado byte a byte.
-- Rótulos com vários blocos de desenho, sem fonte resolvida ou com
-  glifos fora do mapa aparecem como [somente leitura].
+- Rótulos com vários blocos de desenho também podem ser editados: mantenha
+  exatamente o mesmo número de linhas; cada linha reutiliza o seu próprio
+  cabeçalho, âncora e avanço. Só rótulos sem fonte resolvida ou com glifos
+  fora do mapa permanecem como [somente leitura].
 - Caracteres sem glifo na fonte são recusados com aviso (a lista de
   caracteres disponíveis é a do charArray da fonte do rótulo).
 - A edição é em memória: use Salvar WAD como... para gravar. O botão
   "Restaurar original" volta o FLP ao estado de quando o diálogo foi
   aberto.
+
+SUPORTE AO R_SHELL DO GOD OF WAR I (2026-09-22)
+- O `R_SHELL.WAD` do GoW I não contém `msgs_*.txt`: o menu inteiro fica no
+  recurso `FLP_Shell`, como StaticLabels (comandos de glifos + avanço). É o
+  mesmo caminho descrito no `LOCALIZATION.md` do god_of_war_browser.
+- Agora a tool abre normalmente WADs sem TXT e apresenta os rótulos direto
+  na tela principal: `FLP_Shell` aparece no painel esquerdo, a coluna central
+  vira **RÓTULOS DESENHADOS** e o texto selecionado abre no editor da direita.
+  Não é necessário navegar até o menu Ferramentas.
+- A tela principal identifica `FLP_Shell • GoW1`, lê o header GoW1 (magic
+  `0x21`, header `0x60`, StaticLabel de `0x24` bytes) e mostra os acentos
+  CP1252 da fonte como caracteres PT-BR reais (`Opções`, `Vibração`,
+  `Exército` etc.).
+- Rótulos de **um ou vários blocos** podem ser editados pelo botão
+  **Aplicar rótulo** e salvos normalmente. Em avisos multilinha, preserve a
+  quantidade de linhas do texto original: cada Enter corresponde ao bloco de
+  desenho da mesma posição, mantendo as âncoras, escala, cor e layout do menu.
+  A tool recusa adicionar/remover linhas em vez de mover texto automaticamente.
+- O menu Ferramentas > "Rótulos desenhados do filme (FLP)..." permanece como
+  editor avançado para FLPs de WADs que também tenham TXT; quando o shell
+  GoW1 já está aberto no modo principal, ele apenas volta o foco para a lista.
+- Validado estruturalmente sobre o R_SHELL PT-BR fornecido: 1.010 tags,
+  `FLP_Shell` com 120 rótulos, todos editáveis quando os glifos existem na
+  fonte. Foram conferidos no-op byte-exato, edição de `Opções` para `Menu` e
+  edição/reparse de avisos com 2 e 3 linhas. Teste no jogo continua recomendado
+  antes de distribuir qualquer WAD salvo.
+
+
+TXT + FLP NA TELA PRINCIPAL (2026-09-22 R3)
+- WADs como R_PERM/R_PERMA podem ter recursos TXT e filmes FLP juntos. A lista
+  esquerda mantém os TXT normais e acrescenta FLP_HUD e outros FLPs compatíveis.
+- Selecione um FLP para abrir seus StaticLabels diretamente em Mensagens, sem
+  depender do diálogo avançado. Ao voltar a um TXT, o fluxo normal retorna.
+- A edição mantém uma linha por bloco original; não adicione/remova/reordene
+  linhas. Fonte, escala, cor, flags e âncoras são preservadas.
+- Localizar/substituir em lote é exclusivo de TXT por segurança.
+- A mensagem “edição ainda é suportada apenas para 1 bloco” é do pacote R1;
+  a R3 mantém labels multilinha do R_SHELL editáveis quando a fonte suporta os glifos.
