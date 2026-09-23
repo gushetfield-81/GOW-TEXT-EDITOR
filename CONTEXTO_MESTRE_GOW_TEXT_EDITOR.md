@@ -659,9 +659,31 @@ contexto do GitHub recebesse as informações novas da R3.
   obsoleto, clone/bare repo temporário e espelho local do browser. R2, R3,
   código-fonte, testes, documentação e todos os WADs do usuário foram mantidos.
   Isso não remove conteúdo já publicado no GitHub.
-- **Pendente consciente:** a aba **GitHub Releases** não foi alterada nesta
-  etapa; o ZIP R3 está na branch `main`. Criar/atualizar uma release é uma ação
-  separada e deve apontar para este mesmo arquivo/hash.
+- **Estado naquela data:** a aba **GitHub Releases** ainda não tinha sido
+  alterada; a Sessão 16 abaixo resolve essa pendência sem tocar na release
+  rascunho/legada criada pelo usuário.
+
+### Sessão 16 (2026-09-22) — release pública obrigatória a cada entrega da tool
+O usuário determinou que a versão mais recente da tool deve ficar na aba
+**Releases** e que, de agora em diante, toda mudança entregue na tool deve ser
+publicada ali automaticamente.
+
+- **Release atual:** [`v2026.09.22-r3`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.22-r3),
+  título **God of War Text Editor — 2026-09-22 R3**, anexando exatamente
+  `GodOfWarTextEditor_Aprimorado_2026-09-22_R3_EXE.zip` (33.749.116 B;
+  SHA-256 `b9b9d559ad927e3e04f7492478122c9df9bb31c7e0ee8619ea81db20dbc8add4`).
+  A release rascunho/sem tag **GOW TEXT EDITOR** e a release `v1.0` são
+  preservadas, sem sobrescrita ou remoção.
+- **Regra obrigatória para o futuro:** depois de cada alteração que gere uma
+  entrega da tool: (1) rodar validações; (2) gerar ZIP versionado contendo a
+  pasta portátil completa e LEIA-ME; (3) calcular/registrar hashes; (4) fazer
+  commit e push para `main`; (5) criar uma **nova release pública, não draft**
+  com tag única no formato `vAAAA.MM.DD-rN`, anexando o ZIP; (6) atualizar
+  README e este contexto com link, tag, hash e resultado. Nunca substituir um
+  asset de release anterior, nem incluir WADs, `.bak`, `.ini`, logs ou tokens.
+- **Escopo de uma release:** ela só é criada quando uma mudança afeta a tool,
+  seu pacote, seu comportamento ou sua documentação de uso. Alterações sem
+  relação com a tool exigem confirmação do usuário antes de criar uma versão.
 
 ---
 
@@ -796,18 +818,16 @@ No Windows do usuário: `python -m pip install PySide6` + `python gow_text_edito
 
 ## 8. REGRAS PARA SESSÕES FUTURAS (acordo com o usuário)
 
-- **GitHub do projeto (desde 2026-09-16)**: `github.com/gushetfield-81/GOW-TEXT-EDITOR`
-  (branch `main`; a visibilidade pode ser alterada pelo autor). Toda entrega nova de arquivo deve ser commitada e enviada
-  pelo agente na mesma rodada: atualizar `god-of-war-text-editor/` + rodar
-  `bash github_sync.sh "mensagem do commit"`. Token fine-grained em `/home/user/.github_token`
-  (NUNCA versionar nem expor no chat). WADs do jogo NUNCA vão ao repo (copyright);
-  vão tool/, patchers/, LEIA-MEs, CONTEXTO e previews — E o pacote atual
-  `GodOfWarTextEditor_Aprimorado_2026-09-22_R3_EXE.zip` (33,7 MB), com os
-  ZIPs R2/R1 `2026-09-22` e `2026-09-12` preservados como históricos. Ao publicar,
-  criar/atualizar uma release para o ZIP atual junto do `gow_text_editor.py`
-  (downloads em 1 clique). O usuário também criou a
-  própria release ('GOW TEXT EDITOR', untagged) — preservar. O usuário fez o upload inicial
-  pelo site (commit "Add files via upload") — preservar arquivos dele no sync.
+- **GitHub do projeto (desde 2026-09-16):** `github.com/gushetfield-81/GOW-TEXT-EDITOR`,
+  branch `main`. **Regra explícita do usuário desde a Sessão 16:** toda mudança
+  entregue na tool deve, na mesma rodada, ser validada, commitada, enviada e
+  publicada como uma nova **release pública não draft** com o ZIP portátil
+  atual anexado. Usar tag única `vAAAA.MM.DD-rN`; nunca sobrescrever releases
+  ou assets anteriores. Registrar URL, tag, tamanho e SHA-256 no README e neste
+  contexto. A release rascunho sem tag `GOW TEXT EDITOR` e a `v1.0` pertencem
+  ao usuário e devem ser preservadas. Token fine-grained pode ficar somente em
+  `/home/user/.github_token`: nunca versionar, colocar em URL remota ou expor
+  em documentação/chat. WADs, `.bak`, `.ini` e logs NUNCA vão ao repositório.
 
 1. **SEMPRE** atualizar este arquivo (ou gerar `CONTEXTO_MESTRE_YYYY-MM-DD.md` novo)
    ao final de qualquer alteração na tool, com changelog + estado atual.
