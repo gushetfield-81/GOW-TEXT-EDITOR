@@ -669,8 +669,9 @@ O usuário determinou que a versão mais recente da tool deve ficar na aba
 publicada ali automaticamente.
 
 - **Release atual publicada e verificada:** [`v2026.09.22-r3`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.22-r3),
-  título **God of War Text Editor — 2026-09-22 R3**, pública (`draft=false`,
-  `prerelease=false`), criada sobre o commit
+  título **God of War Text Editor — 2026-09-22 R3**, não-draft
+  (`draft=false`, `prerelease=false`) e visível a quem possui acesso ao
+  repositório, criada sobre o commit
   `7d398f74ef8e2820ffbc83ee01390a82a1c37596`. Ela anexa exatamente
   [`GodOfWarTextEditor_Aprimorado_2026-09-22_R3_EXE.zip`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/download/v2026.09.22-r3/GodOfWarTextEditor_Aprimorado_2026-09-22_R3_EXE.zip)
   (33.749.116 B; SHA-256
@@ -680,8 +681,9 @@ publicada ali automaticamente.
 - **Regra obrigatória para o futuro:** depois de cada alteração que gere uma
   entrega da tool: (1) rodar validações; (2) gerar ZIP versionado contendo a
   pasta portátil completa e LEIA-ME; (3) calcular/registrar hashes; (4) fazer
-  commit e push para `main`; (5) criar uma **nova release pública, não draft**
-  com tag única no formato `vAAAA.MM.DD-rN`, anexando o ZIP; (6) atualizar
+  commit e push para `main`; (5) criar uma **nova release não-draft**
+  com tag única no formato `vAAAA.MM.DD-rN`, anexando o ZIP (a visibilidade
+  acompanha o repositório); (6) atualizar
   README e este contexto com link, tag, hash e resultado. Nunca substituir um
   asset de release anterior, nem incluir WADs, `.bak`, `.ini`, logs ou tokens.
 - **Escopo de uma release:** ela só é criada quando uma mudança afeta a tool,
@@ -824,8 +826,9 @@ No Windows do usuário: `python -m pip install PySide6` + `python gow_text_edito
 - **GitHub do projeto (desde 2026-09-16):** `github.com/gushetfield-81/GOW-TEXT-EDITOR`,
   branch `main`. **Regra explícita do usuário desde a Sessão 16:** toda mudança
   entregue na tool deve, na mesma rodada, ser validada, commitada, enviada e
-  publicada como uma nova **release pública não draft** com o ZIP portátil
-  atual anexado. Usar tag única `vAAAA.MM.DD-rN`; nunca sobrescrever releases
+  publicada como uma nova **release não-draft** com o ZIP portátil atual
+  anexado; a visibilidade acompanha a do repositório. Usar tag única
+  `vAAAA.MM.DD-rN`; nunca sobrescrever releases
   ou assets anteriores. Registrar URL, tag, tamanho e SHA-256 no README e neste
   contexto. A release rascunho sem tag `GOW TEXT EDITOR` e a `v1.0` pertencem
   ao usuário e devem ser preservadas. Token fine-grained pode ficar somente em

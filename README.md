@@ -44,7 +44,7 @@ god-of-war-text-editor/
 | **Código Python** (`gow_text_editor.py`) | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-12/`](tool/GodOfWarTextEditor_Aprimorado_2026-09-12/gow_text_editor.py) — requer Python 3.10+ e `pip install PySide6` |
 | **Pacote Windows atual — 2026-09-22 R3** | [`v2026.09.22-r3`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.22-r3) — ZIP portátil com Python+PySide6; baixar, extrair a pasta completa e rodar `GodOfWarTextEditor.exe` |
 | **Pacote Windows v1.0 (histórico)** | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-12_EXE.zip`](tool/GodOfWarTextEditor_Aprimorado_2026-09-12_EXE.zip) — anterior ao suporte GoW I/FLP direto |
-| **Regra de publicação** | Toda mudança entregue na tool recebe ZIP versionado, commit na `main` e uma nova release pública no GitHub, sem sobrescrever releases anteriores. |
+| **Regra de publicação** | Toda mudança entregue na tool recebe ZIP versionado, commit na `main` e uma nova release não-draft no GitHub, sem sobrescrever releases anteriores. A visibilidade segue a do repositório. |
 
 > **Nota de validação:** a R3 mantém os TXT usuais e acrescenta FLPs compatíveis
 > como `FLP_HUD` à lista principal. Ela também incorpora `FLP_Shell`, labels
