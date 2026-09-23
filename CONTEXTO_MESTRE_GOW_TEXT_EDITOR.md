@@ -626,9 +626,42 @@ na mesma lista de recursos.
   (33.749.916 B; SHA-256
   `b9b9d559ad927e3e04f7492478122c9df9bb31c7e0ee8619ea81db20dbc8add4`).
   Fonte incorporada `gow_text_editor.py` SHA-256
-  `a0b3b738455a6e90efe93cdddf0ed09b2469b25bd429b8bdd879e9f4acb662da`.
+  `d4cbac8c3831e652c9a5042448b8f71cc03b4f3b2a493246ed8ec52d17612d57`.
   `unzip -t` passou e a inspeção confirmou ausência de `.wad`, `.bak`, `.ini`
   e `.log`. Nenhum WAD do usuário foi gravado ou incluído.
+
+### Sessão 15 (2026-09-22) — sincronização do contexto e acesso de escrita ao GitHub
+O usuário autorizou o acesso de escrita ao repositório oficial e pediu que o
+contexto do GitHub recebesse as informações novas da R3.
+
+- **Repositório/branch confirmados:** `gushetfield-81/GOW-TEXT-EDITOR`, branch
+  `main`. O acesso HTTPS de escrita foi validado antes de publicar; nenhuma
+  credencial foi adicionada ao repositório, à URL remota ou à documentação.
+- **Primeiro push da R3:** commit
+  [`ff0461bd78b32c1f49e868727f87e790d6dde439`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/commit/ff0461bd78b32c1f49e868727f87e790d6dde439),
+  mensagem `feat: exibe TXT e StaticLabels FLP juntos na tela principal`.
+  Ele adicionou/atualizou a fonte da R3, o ZIP portátil, `tests/test_gow1_flp.py`,
+  README, este contexto, LEIA-ME e regras de `.gitignore` que impedem WADs,
+  backups, INIs e logs de serem versionados.
+- **Integridade atual da entrega publicada:**
+  `GodOfWarTextEditor_Aprimorado_2026-09-22_R3_EXE.zip` tem 33.749.116 B e
+  SHA-256 `b9b9d559ad927e3e04f7492478122c9df9bb31c7e0ee8619ea81db20dbc8add4`.
+  A fonte embutida tem SHA-256
+  `d4cbac8c3831e652c9a5042448b8f71cc03b4f3b2a493246ed8ec52d17612d57`.
+- **Validação repetida antes desta atualização:** `py_compile` passou; a suíte
+  sintética teve 5 testes de núcleo OK e 1 smoke Qt condicional ignorado neste
+  ambiente sem PySide6. O teste central real, somente leitura, reabriu o
+  `R_SHELL.WAD` fornecido: GoW1, `FLP_Shell`, 120 rótulos, `[93]` multilinha
+  editável e no-op byte-exato. O SHA-256 do WAD continuou
+  `f7aa847414922256c501b00bd682e6ea11223be3448d9a2aad41cfc76633488c`.
+- **Espaço de trabalho/local:** para manter a R3 portátil disponível no Arena,
+  o usuário autorizou remover apenas cópias técnicas/históricas locais: ZIP R1
+  obsoleto, clone/bare repo temporário e espelho local do browser. R2, R3,
+  código-fonte, testes, documentação e todos os WADs do usuário foram mantidos.
+  Isso não remove conteúdo já publicado no GitHub.
+- **Pendente consciente:** a aba **GitHub Releases** não foi alterada nesta
+  etapa; o ZIP R3 está na branch `main`. Criar/atualizar uma release é uma ação
+  separada e deve apontar para este mesmo arquivo/hash.
 
 ---
 
@@ -793,27 +826,22 @@ No Windows do usuário: `python -m pip install PySide6` + `python gow_text_edito
 
 ```
 /home/user/
-├── CONTEXTO_MESTRE_GOW_TEXT_EDITOR.md                    <- ESTE arquivo (v2.9)
-├── GOW-TEXT-EDITOR/tool/
-│   ├── GodOfWarTextEditor_Aprimorado_2026-09-22_R3_EXE.zip <- ENTREGA atual (Sessão 14:
-│   │                                                          TXT + FLP mistos + EXE + app\ portátil)
-│   ├── GodOfWarTextEditor_Aprimorado_2026-09-22_R2_EXE.zip <- histórico (Sessão 13: multilinha)
-│   ├── GodOfWarTextEditor_Aprimorado_2026-09-22_EXE.zip  <- histórico R1 / Sessão 12
-│   └── GodOfWarTextEditor_Aprimorado_2026-09-12_EXE.zip  <- histórico / Release v1.0
-├── saida_shell/
-│   ├── R_SHELLA_PTBR.WAD                                 <- Sessão 4 (teste em jogo pendente)
-│   ├── adicionar_acentos_shell.py, flp_gow2.py
-│   ├── previa_definitiva.png, zoom_final_tiles.png
-│   └── LEIA-ME_SHELL.txt
-├── saida_playtime/  <- Sessão 6: R_PERMA_TTJ.WAD ("Tempo de Jogo"),
-│   │                                                  patch_total_playtime.py + LEIA-ME
-├── work/tool/GodOfWarTextEditor_Aprimorado_2026-09-12/   <- FONTE ATUAL da tool (enxuta:
-│   │                                                        exe, py, TTF, LEIA-ME,
-│   │                                                        icone/, imagens_de_fundo/)
-│   └── ../arquivados/  <- arquivos fora da tool (análises, spec/bat antigos,
-│                         test_core.py, fontes do launcher C + icon.ico)
-├── uploads/  <- R_SHELLA.WAD.txt, R_PERMA.WAD.txt (originais)
-└── work/shell/  <- análises/atlas/renders da Sessão 4
+├── CONTEXTO_MESTRE_GOW_TEXT_EDITOR.md                    <- ESTE arquivo (v3.0)
+├── GOW-TEXT-EDITOR/
+│   ├── README.md, tests/test_gow1_flp.py, patchers/, entregas/, previews/
+│   └── tool/
+│       ├── GodOfWarTextEditor_Aprimorado_2026-09-22_R3_EXE.zip <- ENTREGA atual
+│       ├── GodOfWarTextEditor_Aprimorado_2026-09-22_R2_EXE.zip <- histórico multilinha
+│       ├── GodOfWarTextEditor_Aprimorado_2026-09-12_EXE.zip    <- histórico / v1.0
+│       └── GodOfWarTextEditor_Aprimorado_2026-09-12/           <- FONTE ATUAL
+│           (gow_text_editor.py, launcher EXE, TTF, LEIA-ME, ícone e fundo)
+├── uploads/  <- R_SHELL.WAD.txt original de referência + capturas do usuário
+└── RELATORIO_AUDITORIA_GOW_TEXT_EDITOR_2026-09-22.md
+
+Arquivos removidos localmente com autorização do usuário para caber a entrega
+R3 no workspace: ZIP R1 obsoleto, clone/bare repo técnico e espelho local do
+`god_of_war_browser`. O código relevante do browser já está documentado neste
+contexto; a cópia original pode ser clonada novamente quando necessária.
 ```
 
 Observação: o conteúdo de `app\` (Python+PySide6 strip) NÃO persiste no
