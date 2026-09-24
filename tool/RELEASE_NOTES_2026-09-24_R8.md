@@ -1,7 +1,8 @@
 # God of War Text Editor — 2026-09-24 R8
 
-> **Status:** pacote R8 validado localmente e preparado para publicar como
-> `v2026.09.24-r8`. Nenhum WAD de entrada faz parte do asset.
+> **Status:** publicado no GitHub em 2026-09-24 como
+> [`v2026.09.24-r8`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r8).
+> Nenhum WAD de entrada faz parte do asset.
 
 ## O que a R8 corrige
 

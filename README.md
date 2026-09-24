@@ -54,8 +54,8 @@ god-of-war-text-editor/
 | O quê | Onde |
 |---|---|
 | **Código Python R8** (`gow_text_editor.py`) | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8/`](tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8/gow_text_editor.py) — requer Python 3.10+ e `pip install PySide6` |
-| **Pacote R8 preparado — 2026-09-24** | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8_EXE.zip`](tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8_EXE.zip) — ZIP portátil com cores WYSIWYG físicas e controles inline reais `[*N]` de MSGS_TXT |
-| **Release R8** | `v2026.09.24-r8` — fonte, testes, documentação e ZIP serão publicados sem WADs de entrada; R7 continua como referência histórica. |
+| **Pacote R8 publicado — 2026-09-24** | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8_EXE.zip`](tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8_EXE.zip) — ZIP portátil com cores WYSIWYG físicas e controles inline reais `[*N]` de MSGS_TXT |
+| **Release R8 publicada — 2026-09-24** | [`v2026.09.24-r8`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r8) — fonte, testes, documentação e ZIP portátil publicados; nenhum WAD de entrada foi enviado. R7 continua como referência histórica. |
 | **Release R7 publicada — 2026-09-24** | [`v2026.09.24-r7`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r7) — cores físicas WYSIWYG de StaticLabel/MSGS_TXT. |
 
 > **Nota de validação:** a R8 preserva os fluxos TXT/FLP, `FLP_Shell`, labels

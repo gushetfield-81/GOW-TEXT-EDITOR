@@ -1169,5 +1169,7 @@ se precisar regerar o pacote.
   backups ou `__pycache__`.
 - Documentação: `RELATORIO_CORES_INLINE_RUNTIME_R8.md` e
   `tool/RELEASE_NOTES_2026-09-24_R8.md`.
-- Publicação solicitada pelo usuário: preparar/usar a tag nova
-  `v2026.09.24-r8`, não sobrescrever R7 nem publicar WADs de entrada.
+- Publicação concluída em 2026-09-24: commit `8bff6a55b0785fb9eb48326ae37c63962179259d`,
+  tag/release não-draft [`v2026.09.24-r8`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r8)
+  e asset ZIP anexado com o SHA-256 acima. R7 não foi sobrescrita e nenhum WAD
+  de entrada foi publicado.
