@@ -1,0 +1,7 @@
+A pasta app\ (Python portátil + PySide6) faz parte do pacote portátil
+GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip.
+
+Esta cópia de fonte não repete o runtime para evitar duplicar aproximadamente
+65 MB no workspace. Para executar este diretório diretamente, use Python 3.10+
+com PySide6 instalado; para uso portátil no Windows, extraia o ZIP completo,
+que inclui app\ ao lado de GodOfWarTextEditor.exe.

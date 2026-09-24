@@ -1,0 +1,344 @@
+God of War Text Editor — Windows x64
+
+VERSÃO APRIMORADA PELO FLUXO DO ELF
+
+O editor trabalha diretamente sobre recursos existentes no WAD. Ele não
+precisa exportar o texto para editar e não reserializa recursos binários que
+não foram alterados.
+
+USO RÁPIDO
+1. Abra GodOfWarTextEditor.exe.
+2. Clique em Abrir WAD e selecione R_PERM.WAD ou outro WAD compatível.
+3. Escolha o recurso na lista. O editor reconhece msgs_*.txt e também
+   MSGS_TXT, usado pelo runtime Flash do demo GoW2.
+4. Escolha a codificação correta. Windows-1252 é o padrão do browser e do
+   R_PERM.WAD fornecido. Para fontes/runtime japoneses há Shift-JIS/CP932.
+5. Selecione uma mensagem por ID ou use a busca por ID/conteúdo.
+6. Edite o texto à direita. Enter cria LF real. Backspace no começo da linha
+   remove o LF. Clique em Aplicar texto.
+7. Use Diagnóstico para verificar IDs duplicados/desordenados, dicas H/T,
+   páginas separadas por --, linhas acima do limite do DoMsgPage, macros e
+   linhas vazias descartadas pelo parser nativo.
+8. Salve com Salvar WAD como... O WAD original não é sobrescrito por padrão.
+
+ATALHOS
+- Ctrl+O: abrir WAD
+- Ctrl+S: sempre abrir "Salvar como..." para escolher o destino e criar backups
+- Ctrl+Z: desfazer a última edição feita no campo da mensagem
+- Ctrl+F: focar a busca
+
+Ctrl+Z opera sobre o histórico do campo de texto selecionado. Ao trocar de
+mensagem, o histórico é reiniciado para não desfazer acidentalmente o conteúdo
+de outra mensagem.
+
+RECURSOS RUNTIME MSGS
+O ELF do demo mostra que o runtime procura os objetos lógicos:
+
+- MSGS_COUNT: contador binário de mensagens;
+- MSGS_LINES: contador binário de linhas;
+- MSGS_TXT: payload TXT com marcadores *ID*, *ID*H ou *ID*T.
+
+O loader IFF acrescenta um prefixo de tamanho ao MSGS_TXT apenas em memória.
+O editor mantém o payload textual cru no WAD e não grava esse prefixo artificial.
+MSGS_COUNT/MSGS_LINES não aparecem como recursos editáveis de texto.
+
+O parser nativo ignora linhas vazias, ignora linhas iniciadas por //, aceita
+marcadores terminados em *, *H ou *T e usa -- como separador de páginas. O
+DoMsgPage observado no demo aceita no máximo três linhas por página. A edição
+preserva linhas vazias e comentários para manter o arquivo original; o botão
+Diagnóstico mostra o que o runtime efetivamente descartará.
+
+DICAS H/T
+- *123*H identifica o código de dica nativo 1.
+- *123*T identifica o código de dica nativo 2.
+- *123* não possui código de dica.
+
+ENCODING
+- Windows-1252: padrão recomendado para R_PERM.WAD e god_of_war_browser.
+- ISO-8859-1, Windows-1251, UTF-8, UTF-8 com BOM.
+- Shift-JIS/CP932: opção para conteúdo compatível com o modo de dois bytes
+  indicado pela função Decode do runtime.
+
+DICIONÁRIO DE ACENTOS DO GOW2
+Com Windows-1252 selecionado, a interface trabalha visualmente com Unicode:
+se você digitar `Fácil`, `Difícil`, `Titã`, `ação`, `coração` ou `Órgão`, o
+editor grava no TXT os bytes CP1252 correspondentes (`á=E1`, `ã=E3`, `ç=E7`,
+`é=E9`, `í=ED`, `ó=F3`, `ô=F4`, `õ=F5`, `ú=FA`, além dos maiúsculos). O
+mapeamento fica explícito no dicionário `GOW2_CP1252_DICTIONARY` da fonte e é
+usado tanto para a conversão ao salvar quanto para a visualização ao carregar.
+Não é necessário digitar códigos hexadecimais nem UTF-8 manualmente.
+
+O editor verifica erros de conversão antes de salvar. Se o glyph não existir
+na fonte do filme, trocar apenas o encoding do TXT não fará o caractere surgir
+no jogo: o F_Font precisa possuir o código no codeArray.
+
+QUEBRA DE LINHA: LF REAL VERSUS \\n LITERAL
+- LF real é o byte 0x0A e aparece como uma nova linha.
+- Barra invertida + n são dois bytes literais e não quebram linha sozinhos.
+- A caixa “interpretar \\n” converte a notação literal ao aplicar o texto.
+  Fica desligada por padrão para não modificar dados existentes sem aviso.
+- Um NUL final existente no recurso é detectado e preservado.
+
+PRÉVIA
+A prévia CRT possui dois perfis:
+
+- Automático: GoW1 usa os dados observados no FLP_HUD (5 linhas); MSGS_TXT
+  e GoW2 usam o perfil Runtime Flash (3 linhas).
+- GoW1 FLP_HUD: X=-397.5, Y final=14.25, entrelinha=37.5 e tela lógica 800×448.
+- Runtime Flash: três linhas são o limite confirmado no DoMsgPage, mas o ELF
+  não fornece neste export uma matriz única de posição equivalente ao FLP_HUD.
+  X/Y/entrelinha são, portanto, parâmetros aproximados de visualização.
+
+A prévia não modifica o FLP. No runtime, posição e aparência são determinadas
+por F_EditText, F_Font, F_Matrix, F_Cxform, sprites e frames do filme.
+
+PRESERVAÇÃO DO WAD
+- Header físico de 0x20 bytes, campos little-endian e alinhamento de 0x10.
+- Tags não editadas são emitidas byte a byte, inclusive padding não nulo.
+- Tags editadas mantêm tag, flags, nome e conteúdo; o novo padding segue a
+  regra do formato.
+- Recursos desconhecidos e corpos não textuais não são reinterpretados.
+- A gravação usa arquivo temporário e troca atômica. Se você escolher o mesmo
+  caminho do original, um backup .bak é criado antes da substituição.
+
+DIAGNÓSTICO DO ELF E DOS ACENTOS PT-BR
+As análises detalhadas estão em:
+- ANALISE_GOW2_RUNTIME_FLASH_TXT.md
+- ANALISE_PERM.md
+- ANALISE_R_PERM_PTBR_ACENTOS.md
+
+O WAD traduzido PT-BR anexado confirma o método: msgs_en.txt em Windows-1252,
+fonte FLP_HUD com 24 glyphs CP1252 extras e os recursos GFX_PTBR_ACC,
+PAL_PTBR_ACC e TXR_PTBR_ACC. Não basta salvar o TXT como UTF-8; a fonte e os
+bytes do texto precisam corresponder.
+
+Ela documenta ReadMsgText, ParseMsgFile, FindMsg, DoMsg, DoMsgPage,
+FlashInterface::GetVariable, F_EditText, F_Font, Decode, TextRender,
+EditTextBuild e a diferença entre o FLP do browser e o F_Movie Flash do demo.
+
+LIMITAÇÃO CONSCIENTE
+Os bytes das constantes DAT_002edcb8, DAT_002edcc0, DAT_002e97c8 e
+DAT_002e9790 não aparecem no export C do Ghidra. O editor segue o comportamento
+confirmado e sinaliza hipóteses/limites no diagnóstico, sem inventar esses
+bytes.
+
+EXECUTÁVEL .EXE (2026-09-13)
+- A pasta agora inclui GodOfWarTextEditor.exe: launcher Windows 64-bit com o
+  ícone ômega incorporado no próprio arquivo (aparece no Explorer, na barra
+  de título, na barra de tarefas e nos atalhos).
+- Duplo clique no EXE abre a tool: ele usa o Python portátil da pasta app\
+  (pacote .ZIP completo — nada precisa estar instalado) ou, se a pasta app
+  não estiver presente, procura um pythonw.exe do sistema (nesse caso é
+  necessário: pip install PySide6).
+- O EXE sempre executa o gow_text_editor.py desta pasta: para alterar ou
+  atualizar a tool, edite o .py — não é preciso recompilar nada.
+- Sem console e não assinado: o SmartScreen pode pedir "Mais informações >
+  Executar assim mesmo" na primeira execução.
+- Se um dia o programa não abrir, procure o arquivo erro_python.log na pasta
+  da tool: o EXE grava nele qualquer erro do Python para diagnóstico.
+- Distribuição recomendada: o pacote GodOfWarTextEditor_Aprimorado_2026-09-23_R4_EXE.zip,
+  que já traz a pasta app\ completa (Python 3.13.1 + PySide6 6.11.2 Essentials;
+  ~65 MB extraídos, ~33 MB compactados). Extraia a pasta completa antes de
+  abrir o EXE — ele precisa do subdiretório app\ quando não há Python instalado.
+
+NOVIDADES DESTA REVISÃO (2026-09-13)
+- Acento visual da interface mudado de laranja para VERMELHO em toda a tool:
+  menus, cabeçalhos de painel, seleção de listas/tabela, botões ativos,
+  botão "Aplicar texto" e avisos de diagnóstico.
+- Nova opção Visualizar > Imagem de fundo: coloca uma imagem personalizada
+  (PNG/JPG/BMP/GIF/WEBP) atrás da interface, com efeito de vidro nos painéis.
+  - Escurecimento: Leve / Médio / Forte, para ajustar a legibilidade.
+  - A escolha fica salva no GodOfWarTextEditor.ini ([ui] bg_image e bg_dim)
+    e é restaurada automaticamente na próxima abertura.
+  - "Remover imagem" volta ao tema sólido padrão.
+  - Recurso apenas cosmético da janela: o WAD e os textos não são afetados.
+
+NOVIDADES DA REVISÃO 2 (2026-09-13)
+- Pasta imagens_de_fundo dentro da pasta da tool:
+  - Coloque qualquer imagem (PNG/JPG/BMP/GIF/WEBP) nela e a tool aplica
+    sozinha como fundo na próxima abertura. Vale a imagem mais recente.
+  - Um aviso "COLOQUE-A-IMAGEM-AQUI.txt" é criado dentro da pasta.
+  - Imagens escolhidas pelo menu Visualizar > Imagem de fundo > Definir
+    imagem... são copiadas para essa pasta automaticamente.
+  - Pasta vazia = a tool usa o fundo salvo no .ini (ou o tema sólido).
+- Novo item Visualizar > Imagem de fundo > Recarregar da pasta: reaplica
+  na hora a imagem mais recente da pasta, sem reabrir a tool.
+- Título "GOW Text Editor" discreto no topo (canto esquerdo da barra de
+  botões), na fonte GodOfWar (GODOFWAR.TTF, na pasta da tool) e em VERMELHO.
+  O tamanho acompanha a escala da interface (Ctrl+= / Ctrl+- / Ctrl+0).
+- Se o GODOFWAR.TTF não estiver presente, a tool continua funcionando e o
+  título usa uma fonte comum.
+
+AJUSTE DA DETECÇÃO DO FUNDO (2026-09-13)
+- A detecção na pasta imagens_de_fundo agora é pelo NOME do arquivo:
+  só é carregada uma imagem chamada background (background.png,
+  background.jpg, background.jpeg, background.bmp, background.gif ou
+  background.webp). Arquivos com outros nomes são ignorados.
+- Se houver mais de um, a preferência é: png > jpg > jpeg > bmp > gif > webp.
+- Imagens escolhidas em Visualizar > Imagem de fundo > Definir imagem...
+  são copiadas para a pasta já com o nome correto (e o background antigo
+  com outra extensão é removido).
+
+ÍCONE DA JANELA (2026-09-13)
+- Nova pasta icone na pasta da tool, mesmo esquema do fundo:
+  só é reconhecido o arquivo chamado icon (icon.ico, icon.png, icon.jpg,
+  icon.jpeg, icon.bmp, icon.gif ou icon.webp); outros nomes são ignorados.
+- Preferência em caso de duplicados: ico > png > jpg > jpeg > bmp > gif > webp.
+- O ícone aparece na barra de título (ao lado de "God of War Text Editor"),
+  na barra de tarefas e nos diálogos da tool.
+- Já vem com um icon.png de exemplo (ômega vermelho). Troque pelo seu!
+- Menu Visualizar > Ícone da janela: Definir ícone... (copia para a pasta
+  já com o nome correto), Recarregar da pasta e Remover ícone (o arquivo
+  vira icon.ext.off; renomeie de volta para reativar).
+
+RÓTULOS DESENHADOS DO FILME — FLP (2026-09-16)
+- Menu Ferramentas > "Rótulos desenhados do filme (FLP)...":
+  edita textos que NÃO passam pelo MSGS porque são DESENHOS dentro do
+  filme Flash (StaticLabels) — exemplo: "Total PlayTime" na tela STATUS
+  do R_PERMA (FLP_HUDA).
+- A lista mostra os rótulos decodificados (usando a fonte do próprio
+  FLP) e permite trocar o texto. O avanço das letras é herdado do
+  rótulo original (com fallback largura_natural x fator_medido), e o
+  cabeçalho do bloco é preservado byte a byte.
+- Rótulos com vários blocos de desenho também podem ser editados: mantenha
+  exatamente o mesmo número de linhas; cada linha reutiliza o seu próprio
+  cabeçalho, âncora e avanço. Só rótulos sem fonte resolvida ou com glifos
+  fora do mapa permanecem como [somente leitura].
+- Caracteres sem glifo na fonte são recusados com aviso (a lista de
+  caracteres disponíveis é a do charArray da fonte do rótulo).
+- A edição é em memória: use Salvar WAD como... para gravar. O botão
+  "Restaurar original" volta o FLP ao estado de quando o diálogo foi
+  aberto.
+
+SUPORTE AO R_SHELL DO GOD OF WAR I (2026-09-22)
+- O `R_SHELL.WAD` do GoW I não contém `msgs_*.txt`: o menu inteiro fica no
+  recurso `FLP_Shell`, como StaticLabels (comandos de glifos + avanço). É o
+  mesmo caminho descrito no `LOCALIZATION.md` do god_of_war_browser.
+- Agora a tool abre normalmente WADs sem TXT e apresenta os rótulos direto
+  na tela principal: `FLP_Shell` aparece no painel esquerdo, a coluna central
+  vira **RÓTULOS DESENHADOS** e o texto selecionado abre no editor da direita.
+  Não é necessário navegar até o menu Ferramentas.
+- A tela principal identifica `FLP_Shell • GoW1`, lê o header GoW1 (magic
+  `0x21`, header `0x60`, StaticLabel de `0x24` bytes) e mostra os acentos
+  CP1252 da fonte como caracteres PT-BR reais (`Opções`, `Vibração`,
+  `Exército` etc.).
+- Rótulos de **um ou vários blocos** podem ser editados pelo botão
+  **Aplicar rótulo** e salvos normalmente. Em avisos multilinha, preserve a
+  quantidade de linhas do texto original: cada Enter corresponde ao bloco de
+  desenho da mesma posição, mantendo as âncoras, escala, cor e layout do menu.
+  A tool recusa adicionar/remover linhas em vez de mover texto automaticamente.
+- O menu Ferramentas > "Rótulos desenhados do filme (FLP)..." permanece como
+  editor avançado para FLPs de WADs que também tenham TXT; quando o shell
+  GoW1 já está aberto no modo principal, ele apenas volta o foco para a lista.
+- Validado estruturalmente sobre o R_SHELL PT-BR fornecido: 1.010 tags,
+  `FLP_Shell` com 120 rótulos, todos editáveis quando os glifos existem na
+  fonte. Foram conferidos no-op byte-exato, edição de `Opções` para `Menu` e
+  edição/reparse de avisos com 2 e 3 linhas. Teste no jogo continua recomendado
+  antes de distribuir qualquer WAD salvo.
+
+
+TXT + FLP NA TELA PRINCIPAL (2026-09-22 R3)
+- WADs como R_PERM/R_PERMA podem ter recursos TXT e filmes FLP juntos. A lista
+  esquerda mantém os TXT normais e acrescenta FLP_HUD e outros FLPs compatíveis.
+- Selecione um FLP para abrir seus StaticLabels diretamente em Mensagens, sem
+  depender do diálogo avançado. Ao voltar a um TXT, o fluxo normal retorna.
+- A edição mantém uma linha por bloco original; não adicione/remova/reordene
+  linhas. Fonte, escala, cor, flags e âncoras são preservadas.
+- Localizar/substituir em lote é exclusivo de TXT por segurança.
+- A mensagem “edição ainda é suportada apenas para 1 bloco” é do pacote R1;
+  a R3 mantém labels multilinha do R_SHELL editáveis quando a fonte suporta os glifos.
+
+
+IMPORTAR / EXPORTAR FILME FLP BRUTO (2026-09-23 R4)
+- Selecione um filme FLP reconhecido no painel esquerdo. No menu **Arquivo** e na barra de
+  ações, os comandos passam a se chamar **Exportar FLP…** e **Importar FLP…**.
+- **Exportar FLP…** grava um arquivo `.flp` binário contendo exatamente o corpo
+  do recurso — começa no magic do filme e não inclui o header de 0x20 bytes da
+  tag WAD. É adequado para backup, troca entre WADs compatíveis ou edição por
+  outra ferramenta que trabalhe com FLP bruto.
+- **Importar FLP…** substitui somente o filme que está selecionado. O nome,
+  tag e flags do destino no WAD permanecem os mesmos; o tamanho da tag é
+  atualizado ao salvar o WAD. A tool pede confirmação antes de trocar o filme.
+- Antes de aceitar a importação, a tool abre o arquivo inteiro com o parser
+  FLP: GoW1 exige magic `0x21` e layout de header `0x60`; GoW2 exige magic
+  `0x1B` e header `0x5C`. Importar GoW1 sobre GoW2, ou o inverso, é bloqueado.
+  A validação foi baseada nos handlers `pack/wad/flp/flp.go` e parser do
+  `god_of_war_browser` fornecido.
+- A importação transfere somente o FLP. Modelos `MDL_*`, materiais, fontes,
+  texturas e recursos de WAD dos quais o filme possa depender não são copiados
+  junto; use um FLP compatível com os recursos do WAD de destino.
+- A troca é feita em memória. Use **Salvar WAD como…** para gravá-la em disco;
+  os demais segmentos do WAD continuam preservados byte a byte.
+
+
+CORES DE TEXTO DO FLP — R5 (2026-09-24)
+- Com um **FLP GoW2** selecionado, abra **Ferramentas > Cores de texto do
+  FLP…**. A janela separa as três camadas reais que o jogo combina no render:
+  1. **DynamicLabels • cor base**: campos F_EditText do runtime, identificados
+     pelo nome/variável do jogo;
+  2. **StaticLabels • RenderCommand**: cores diretas de comandos de desenho,
+     com os blocos/textos que herdam o campo;
+  3. **Animações • BlendColors**: tintas/multiplicadores chamadas por
+     KeyFrames, com as referências e rótulos textuais alcançáveis.
+- A cor é escolhida em RGBA, inclusive alfa. Antes de aplicar, a janela mostra
+  **Atual** e **Nova**. Clique em **Aplicar cor neste campo** para alterar só a
+  entrada selecionada; use **Salvar WAD como…** depois para gravar uma cópia.
+- A alteração é cirúrgica e de tamanho fixo: 4 bytes em DynamicLabel ou
+  StaticLabel, 8 bytes (quatro words) numa BlendColor. O FLP é reaberto e
+  revalidado após cada alteração; nome/flags da tag, textos, fontes, modelos,
+  materiais e os demais bytes do filme não são reconstruídos.
+- Atenção à camada escolhida:
+  - DynamicLabel é a cor base. Uma animação ainda pode multiplicá-la.
+  - StaticLabel é a cor do comando desenhado; blocos posteriores sem cor
+    própria podem herdar a última cor daquele rótulo.
+  - BlendColor normalmente representa um passo de fade/tween. Alterar uma
+    entrada muda cada KeyFrame que a referencia, não necessariamente uma cor
+    global estática.
+- A UI usa RGBA. No disco, DynamicLabel/F_EditText é BGRA; StaticLabel é RGBA
+  por byte; BlendColors é RGBA de 16 bits na escala nativa 0..256. A tool faz a
+  conversão automaticamente.
+- A R5 foi validada com FLP_HUDA (R_PERMA) e FLP_ShellA (R_SHELLA). Consulte
+  `RELATORIO_ANALISE_CORES_FLP_GOW2.md` na pasta do projeto para o inventário,
+  offsets, hashes e limitações. Teste o WAD salvo no PCSX2 ou hardware antes de
+  distribuir uma modificação.
+
+
+CORES ASSOCIADAS AO TEXTO EM EDIÇÃO — R6 (2026-09-24)
+A R6 mantém o editor geral em **Ferramentas > Cores de texto do FLP…**, mas
+agora também coloca o painel **CORES ASSOCIADAS AO TEXTO ATIVO** logo abaixo do
+campo de edição. Selecione um texto, selecione uma cor no painel e clique em
+**Editar cor selecionada…**; a cor é alterada em memória sem sair do texto que
+você está escrevendo.
+
+STATICLABELS FLP GoW2
+- Para um texto desenhado/StaticLabel selecionado na tela principal, o painel
+  mostra cada cor RGBA direta dos RenderCommands daquele rótulo e somente as
+  BlendColors/KeyFrames que chegam a ele pela árvore de animação.
+- O alcance deixa explícito se uma cor direta é herdada por outros blocos do
+  mesmo rótulo ou se uma BlendColor também alcança outros textos do filme.
+
+MSGS_TXT DO RUNTIME GoW2
+- Para uma mensagem TXT do runtime, não existe uma cor por ID da mensagem. O
+  código do jogo injeta cada linha da página nas variáveis Flash
+  `PS2_MessageTemplate_Line1` até `Line5`. Por isso o painel associa a linha
+  sob o cursor ao campo `MessageTemplate_LineN` real do `FLP_HUDA` (inclusive
+  todas as instâncias/estados de um mesmo nome), suas cores base DynamicLabel e
+  as BlendColors que a alcançam.
+- Mova o cursor para outra linha para ver o `LineN` correspondente. Sobre uma
+  linha vazia ou o separador `--`, o painel mostra todos os campos do template
+  que aquela mensagem pode usar. O DoMsgPage analisado usa no máximo três
+  linhas por página; Line4/Line5 permanecem expostos porque existem no FLP e
+  em estados do runtime.
+- Um TXT comum que não seja `MSGS_TXT` não recebe uma associação inventada: a
+  tool avisa que não há vínculo físico seguro em vez de oferecer a cor errada.
+
+SEGURANÇA DA EDIÇÃO INLINE
+- DynamicLabel altera 4 bytes BGRA; StaticLabel, 4 bytes RGBA; BlendColor,
+  até 8 bytes RGBA uint16. O campo é relido no FLP atual antes do patch e o
+  filme é revalidado depois.
+- Se houver um texto StaticLabel ainda não aplicado, a tool o consolida antes
+  de editar sua cor; o texto que está no editor é preservado. Em MSGS_TXT, o
+  patch é feito no FLP de origem sem descartar a mensagem pendente.
+- Uma BlendColor pode ser compartilhada. Leia a coluna/descrição **Alcance**
+  antes de mudar uma: ela informa quantos KeyFrames e rótulos textuais também
+  serão afetados. Salve sempre como novo WAD e teste no jogo.

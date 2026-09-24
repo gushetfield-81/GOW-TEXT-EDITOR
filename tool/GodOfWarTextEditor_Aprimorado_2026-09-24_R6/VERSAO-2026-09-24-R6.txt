@@ -1,0 +1,65 @@
+GOD OF WAR TEXT EDITOR — PACOTE PORTÁTIL WINDOWS x64
+Build: 2026-09-24 R6 — cores associadas ao texto durante a edição
+
+NOVO NESTA REVISÃO
+- Painel **CORES ASSOCIADAS AO TEXTO ATIVO** dentro da tela principal, abaixo
+  do editor. Selecione um texto, escolha uma linha/cor no painel e clique em
+  **Editar cor selecionada…** sem sair da edição.
+- StaticLabels FLP GoW2: o painel mostra as cores diretas de RenderCommands do
+  rótulo e somente BlendColors/KeyFrames que alcançam aquele rótulo.
+- MSGS_TXT GoW2: o painel usa o vínculo real do runtime, não uma associação
+  por ID inventada. A linha sob o cursor é ligada a
+  PS2_MessageTemplate_Line1..Line5 do FLP e às suas instâncias de DynamicLabel
+  e BlendColors. Mover o cursor muda o LineN exibido.
+- Ao posicionar o cursor em linha vazia ou no separador --, a tool mostra todos
+  os campos MessageTemplate potencialmente usados pela mensagem.
+- Cada linha informa fonte FLP, camada, campo/linha, RGBA, alfa e alcance. Uma
+  BlendColor compartilhada revela KeyFrames e rótulos adicionais afetados.
+- TXT que não é MSGS_TXT fica explicitamente sem associação de cor: a tool não
+  arrisca mapear um texto a um FLP sem prova física.
+- O botão inline preserva texto pendente: se a cor é do StaticLabel em edição,
+  ele consolida o texto antes do patch; se é de MSGS_TXT, altera o FLP de origem
+  sem descartar a mensagem ainda aberta.
+
+SEGURANÇA
+- DynamicLabel: altera somente 4 bytes BGRA.
+- StaticLabel: altera somente 4 bytes RGBA.
+- BlendColor: altera somente 8 bytes (quatro uint16 RGBA 0..256).
+- Cada campo é relido no filme atual, o FLP é reaberto/revalidado e tamanho,
+  fontes, modelos, materiais, tags e bytes fora do campo escolhido são mantidos.
+
+VALIDAÇÃO R6
+- py_compile aprovado.
+- Suíte persistente: 16 testes. No host sem PySide6: 14 aprovados e 2 smokes
+  Qt ignorados. Com PySide6 Qt offscreen: 16/16 aprovados.
+- O smoke R6 abriu R_PERMA, selecionou MSGS_TXT, conferiu o painel
+  MSGS_TXT -> FLP_HUDA, moveu o cursor da linha 1 para a 2 (Line2/IDs 2 e 37),
+  aplicou uma cor pelo botão inline e confirmou diff exato de 4 bytes no
+  DynamicLabel, preservando o texto em edição. Também conferiu o painel de
+  StaticLabel com cor direta e animações.
+- Os WADs de entrada permaneceram somente em leitura; patches e serializações
+  de teste foram mantidos em memória.
+
+COMO USAR
+1. Extraia a pasta inteira e abra GodOfWarTextEditor.exe.
+2. Abra uma CÓPIA do WAD e selecione uma mensagem ou rótulo na lista central.
+3. Veja **CORES ASSOCIADAS AO TEXTO ATIVO** sob o editor. Para MSGS_TXT, ponha
+   o cursor na linha cuja aparência deseja ajustar.
+4. Leia Alcance, selecione uma linha de cor e clique em Editar cor selecionada…
+5. Use Salvar WAD como… e teste o resultado no jogo antes de distribuir.
+
+INTEGRIDADE (arquivos dentro desta pasta)
+- gow_text_editor.py SHA-256:
+  a849b1f73c97320f82bdce15f449bbbb747076884f1255ae81edda940982493c
+- LEIA-ME.txt SHA-256:
+  c78672be7b390a1ac4f6763e4e2514bfe20678019f49867b441e75a936dddde8
+- GodOfWarTextEditor.exe SHA-256:
+  7c43368fd54d101fa0d3400d63dc8ac122782f2702f2e2248156497858dde950
+
+PUBLICAÇÃO
+Este pacote foi preparado localmente. A publicação no GitHub/Releases continua
+pendente de nova solicitação/autenticação do usuário; nenhuma release anterior
+foi alterada ou sobrescrita.
+
+Tool By: Gus Hetfield
+Special Thanks: Mogaika

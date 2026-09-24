@@ -5,8 +5,8 @@
 > 2026-09-13): **sempre atualizar/gerar este arquivo após qualquer alteração na tool.**
 > Em um chat novo, anexe este arquivo (+ os arquivos relevantes) para retomar de onde parou.
 
-Última atualização: **2026-09-22** (Sessão 13 — StaticLabels multilinha editáveis)
-Versão do documento: **2.9** (substitui o antigo `CONTEXTO_GOW_TEXT_EDITOR_HANDOFF.md/.txt`)
+Última atualização: **2026-09-24** (Sessão 20 — cores WYSIWYG no editor, R7)
+Versão do documento: **3.1** (substitui o antigo `CONTEXTO_GOW_TEXT_EDITOR_HANDOFF.md/.txt`)
 
 ---
 
@@ -46,6 +46,28 @@ Versão do documento: **2.9** (substitui o antigo `CONTEXTO_GOW_TEXT_EDITOR_HAND
   central + editor à direita), sem exigir o menu Ferramentas. Rótulos de um
   ou vários blocos são editáveis: em multilinha, a UI exige preservar o mesmo
   número de linhas e reemite cada uma no bloco/âncora original.
+- **Transferência FLP bruta (R4):** ao selecionar um filme FLP, a tool exporta o
+  payload binário `.flp` inteiro e pode importar outro payload para **somente
+  essa tag**. O import é validado antes da troca, mantém nome/tipo/flags da tag
+  de destino e bloqueia GoW1 ↔ GoW2. Filmes sem StaticLabels também são listados
+  para transferência, mas a tool não traz junto os recursos externos do filme.
+- **Cores de texto FLP GoW2 (R5):** em `Ferramentas → Cores de texto do FLP…`,
+  a UI lista separadamente (i) a cor base BGRA de cada DynamicLabel, (ii) a
+  cor RGBA de RenderCommands StaticLabel e (iii) cada BlendColor RGBA 0..256
+  usada em KeyFrames. Ela apresenta Atual/Nova/alfa e os rótulos alcançáveis
+  por uma tinta de animação; o patch toca somente 4 ou 8 bytes do FLP ativo.
+- **Cores WYSIWYG durante a edição (R7):** a tabela R6 deixou de ser o fluxo
+  principal. `TextColorHighlighter` pinta visualmente, no próprio
+  `QPlainTextEdit`, os glifos da cor base física associada sem transformar o
+  conteúdo em rich text; `toPlainText()` e a serialização continuam puros.
+  O cabeçalho **COR BASE** permite escolher e editar o campo físico sem sair do
+  texto. Para StaticLabels GoW2, somente RenderCommands diretos associados aos
+  blocos são usados. Para `MSGS_TXT`, a linha/página sob o cursor é ligada de
+  forma comprovada a `PS2_MessageTemplate_Line1..Line5`, preservando todas as
+  instâncias/estados físicos de DynamicLabel no seletor. Linhas vazias/`--` e
+  TXT sem evidência de runtime/FLP são recusados. BlendColors são informadas
+  como animações, sem aparência estática inventada. O patch continua podendo
+  alterar o FLP de origem sem descartar texto pendente.
 
 ### 2.2 Interface (estado atual)
 - **Acento visual VERMELHO** (era laranja): paleta
@@ -55,8 +77,10 @@ Versão do documento: **2.9** (substitui o antigo `CONTEXTO_GOW_TEXT_EDITOR_HAND
   para **FILMES / RÓTULOS**, a lista central para **RÓTULOS DESENHADOS** e o
   editor para **TEXTO DO RÓTULO**. A lista marca multilinhas com `• N linhas`
   e o status lembra manter N linhas. Os botões estruturais (+Nova/Duplicar/
-  Excluir), codec, importar/exportar e localizar/substituir ficam desativados;
-  **Aplicar rótulo** grava somente o StaticLabel selecionado em memória.
+  Excluir), codec e localizar/substituir ficam desativados; **Exportar FLP…** e
+  **Importar FLP…** ficam ativos e trabalham exclusivamente com o filme
+  selecionado. **Aplicar rótulo** grava somente o StaticLabel selecionado em
+  memória.
 - **Imagem de fundo personalizada** — menu `Visualizar > Imagem de fundo`:
   - `Definir imagem...` (PNG/JPG/JPEG/BMP/GIF/WEBP): copia a escolha para
     `imagens_de_fundo/` já com o nome `background.*` e aplica na hora;
@@ -84,8 +108,8 @@ Versão do documento: **2.9** (substitui o antigo `CONTEXTO_GOW_TEXT_EDITOR_HAND
   `Ctrl+Shift+Z`/`Ctrl+Shift+Y` undo/redo global, `Ctrl+F` busca, `Ctrl+H` substituir,
   `F11` tela cheia, `Ctrl+0` escala 100%.
 - Configuração em `GodOfWarTextEditor.ini` ao lado do .py (override de testes:
-  env `GOW2TE_INI`); seções: `[paths]`, `[window]`, `[ui]` (scale, bg_image, bg_dim),
-  `[editor]` (codec).
+  env `GOW2TE_INI`); seções: `[paths]` (`last_open_dir`, `last_save_dir`,
+  `last_flp_dir`), `[window]`, `[ui]` (scale, bg_image, bg_dim), `[editor]` (codec).
 
 ### 2.3 Arquivos da tool (pasta `GodOfWarTextEditor_Aprimorado_2026-09-12/`)
 | Arquivo | Papel |
@@ -120,6 +144,182 @@ WADs legados em CP1252 são migrados automaticamente ao carregar e gravados em U
 ---
 
 ## 4. HISTÓRICO DE SESSÕES / CHANGELOG
+
+### Sessão 20 (2026-09-24) — Cores WYSIWYG no próprio editor (R7)
+O usuário rejeitou a tabela externa R6 como interação suficiente: ao abrir ou
+circular por um texto, queria ver os próprios glifos de **TEXTO DA MENSAGEM**
+na cor associada e editar essa cor sem abandonar o texto aberto.
+
+- **UI/visualização:** foi adicionada a classe `TextColorHighlighter`, baseada
+  em `QSyntaxHighlighter`. Ela recebe um mapa bloco/linha → RGBA e formata os
+  glifos, sem inserir HTML/marcação no documento. `set_line_colors()` compara
+  o mapa e bloqueia os sinais do `QTextDocument` durante `rehighlight()`: isso
+  evita recursão por `textChanged` sem ocultar uma edição real do usuário.
+- **Fluxo no mesmo editor:** o cabeçalho contém `COR BASE`, o combo das
+  instâncias físicas, botão RGBA colorido de edição e dica de animações. Mover
+  o cursor atualiza seletor e pintura; inserir/remover linhas ou `--` atualiza
+  o mapeamento visual. A tabela inferior R6 não é construída na R7.
+- **StaticLabel GoW2:** cada bloco em `affected_blocks` recebe somente o campo
+  direto do `RenderCommand` que realmente o atinge. A edição consolida texto
+  pendente quando necessário e muda apenas os quatro bytes RGBA desse campo.
+- **MSGS_TXT GoW2:** `_runtime_template_lines_in_editor()` mapeia páginas e
+  linhas reais para `MessageTemplate_Line1..Line5`. Cada linha usa a cor base
+  da primeira instância disponível como aparência inicial; o combo conserva
+  todas as instâncias físicas/estados e a instância selecionada redesenha a
+  linha sob o cursor. Linha vazia/separador não ganha associação falsa.
+- **BlendColors:** o hint informa quantas animações alcançam o campo, mas não
+  tenta reduzir KeyFrames a uma cor visual única. A ferramenta avançada R5
+  continua sendo o local para analisar/alterar animações.
+- **Testes:** criado `tests/test_inline_colors_ui_r7.py`. Com PySide6/Qt
+  offscreen, a suíte completa passou **18/18**: formatos reais de glifo,
+  reinício de página em `--`, Line1→Line2, IDs `{2,37}`, instância alternativa,
+  patch DynamicLabel/Static exato de quatro bytes e texto preservado. Um smoke adicional abriu
+  `R_SHELLA`, confirmou `FLP_ShellA` GoW2 e a indicação de 22 animações. Os
+  hashes de `R_PERMA.WAD.txt` e `R_SHELLA.WAD.txt` permaneceram os de entrada.
+- **Documentação R7:** `tool/RELEASE_NOTES_2026-09-24_R7.md` e
+  `RELATORIO_INTERACAO_CORES_TEXTO_R7.md` registram fluxo, associação,
+  limitações e validação WYSIWYG.
+- **Pacote local R7:**
+  `GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip`, 33.615.396 B,
+  SHA-256 `b7c4baaa02520633486232f0370e74a28bdd7ac21f0a7b1d4746229b062be638`;
+  fonte SHA-256
+  `fce152f0b8e1abd5998d139d5afeb91e6c77efec64d5ed765128fbd3a4d6ea0a`.
+  `unzip -t`, compilação da fonte extraída e presença de `app/python.exe`
+  foram conferidos; sem `.ini`, `.log`, `.bak` ou `__pycache__` no ZIP.
+- **Publicação:** permanece `publish_later`; não houve commit, push ou release.
+
+### Sessão 19 (2026-09-24) — Cores associadas ao texto durante a edição (R6)
+Pedido do usuário: ao selecionar um texto para editar, ver as cores associadas
+já na tela principal e poder alterá-las sem abandonar a edição. O usuário
+escolheu incluir também `MSGS_TXT`, não somente StaticLabels.
+
+- **Associação segura de StaticLabel:** `FLPMovie.colors_for_text_target()`
+  parte do índice físico `StaticLabel[n]`, lista seus RenderCommands diretos e
+  só as BlendColors cujo grafo Data6/Data7/Data8 chega ao mesmo rótulo.
+- **Associação segura de MSGS_TXT:** o decompile confirma que `DoMsgPage`
+  preenche `MessageTemplate_Line1..Line5`, forma os nomes
+  `PS2_MessageTemplate_Line%d` e o `FLP_HUDA` contém DynamicLabels com esses
+  nomes. A R6 lê a linha/página sob o cursor: linha 1 → Line1, linha 2 → Line2
+  etc.; em `--`/linha vazia mostra todos os campos potencialmente usados. O
+  vínculo não é por ID de mensagem. `FLP_HUDA` contém Line1 nos DynamicLabels
+  1 e 36, Line2 em 2 e 37, Line3 em 3 e 38, Line4 em 4 e Line5 em 5; todos os
+  estados são mostrados, não escondidos atrás de uma única cor.
+- **UI:** o GroupBox `CORES ASSOCIADAS AO TEXTO ATIVO` fica abaixo do editor e
+  mostra FLP, camada, campo/linha, RGBA, alfa e alcance. `Editar cor
+  selecionada…` usa o mesmo patch cirúrgico R5. O detalhe avisa quantos
+  KeyFrames/rótulos uma BlendColor compartilhada também afeta.
+- **Preservação:** `_install_flp_color_patch()` permite patch no FLP de origem
+  mesmo quando o recurso ativo é `MSGS_TXT`. Quando a cor é de um StaticLabel
+  em edição, o texto pendente é consolidado primeiro; nenhum texto é perdido.
+- **Recusa consciente:** TXT que não é `MSGS_TXT` recebe aviso de ausência de
+  vínculo físico, não uma associação por heurística.
+- **Testes R6:** 16 testes persistentes. Sem PySide6: 14 passaram / 2 smokes
+  ignorados. Com PySide6 Qt offscreen: **16/16** passaram; o smoke carregou
+  R_PERMA, verificou painel MSGS→HUDA, moveu cursor Line1→Line2 (IDs 2/37),
+  aplicou cor inline com diff exato de 4 bytes e confirmou texto preservado.
+  Também confirmou painel inline de StaticLabel. WADs de entrada continuaram
+  somente leitura.
+- **Artefatos:** `tests/test_gow2_flp_colors_r6.py`,
+  `tests/test_inline_colors_ui_r6.py` e
+  `RELATORIO_ASSOCIACAO_CORES_TEXTO_R6.md`.
+- **Pacote local R6:** `GodOfWarTextEditor_Aprimorado_2026-09-24_R6_EXE.zip`,
+  33.618.226 B, SHA-256
+  `ecf46f86c2c17c7aba22ed42c8bca3ad098d4f387ca15da2dbe4d2a6398aa5d1`;
+  fonte SHA-256
+  `a849b1f73c97320f82bdce15f449bbbb747076884f1255ae81edda940982493c`.
+- **Publicação:** continua `publish_later`; não houve commit/push/release.
+
+### Sessão 18 (2026-09-24) — Cores de texto FLP GoW2 (R5)
+Pedido do usuário: localizar onde as cores dos textos são armazenadas em
+`R_PERMA.WAD.txt` e `R_SHELLA.WAD.txt`, validar a semântica no Browser antes de
+editar e acrescentar a função à tool se fosse tecnicamente segura.
+
+- **Entradas preservadas somente em leitura:** `R_PERMA.WAD.txt` SHA-256
+  `fcbecae40d0dcc7ef677f7de37458ea5f1a9a1b0305945e0d38a70ad00f7c42d` e
+  `R_SHELLA.WAD.txt` SHA-256
+  `d97b35d25a834565a1001df8236e45202ff38bf2e89f1d6b2980c23b16435e76`.
+- **Três camadas confirmadas pelo Browser:** `DynamicLabel.BlendColor` no
+  registro de 0x20 B (+0x08), `StaticLabelRenderCommand.BlendColor` quando a
+  flag 0x04 existe e `BlendColors[KeyFrame.ColorId]` global. O parser de
+  `Data6/Data7/Data8` foi reconstruído conforme `parser.go`: HUDA chega a
+  1.171 BlendColors/10.307 keyframes (`BlendColors @0x59BA0`) e ShellA a
+  522/4.083 (`@0x1CC38`), sem ids/handlers inválidos.
+- **Ordem de canais validada:** StaticLabel = RGBA byte a byte; BlendColors =
+  RGBA por quatro uint16 na escala 0..256; DynamicLabel/F_EditText = **BGRA no
+  disco**. Esta última foi confirmada além do Browser no `EditTextRender` do
+  decompile GoW2: R usa `>>16`, G `>>8`, B o byte baixo e A `>>24`.
+- **Escopo mapeado:** `FLP_HUDA` tem 556 DynamicLabels/4 StaticLabels e 373
+  tintas globais que alcançam texto; a sequência `ZoneReport` ColorIds 576–593
+  afeta `/:PS2_ZoneReport_Title`. `FLP_ShellA` tem 120/1 e 156 tintas de texto.
+- **Core R5:** `FLPMovie.analyze_text_colors()` percorre o layout variável,
+  mapeia nomes, handlers, ColorIds e descendentes textuais. Os métodos
+  `with_dynamic_label_color`, `with_static_label_color` e `with_blend_color`
+  alteram apenas 4/4/8 bytes e reabrem o FLP para revalidação.
+- **UI R5:** `Ferramentas → Cores de texto do FLP…` possui abas separadas para
+  DynamicLabels, RenderCommands e BlendColors, filtro, seletor com alfa,
+  comparação Atual/Nova e descrição do escopo/labels alcançáveis. Fica
+  habilitado apenas para o FLP GoW2 ativo; alteração permanece em memória até
+  Salvar WAD como.
+- **Testes:** 14 aprovados, 1 smoke Qt ignorado sem PySide6. A regressão real
+  confirma patch/round-trip de DynamicLabel, StaticLabel e BlendColor; no
+  round-trip WAD o diff ficou limitado ao campo planejado (4/4/até 8 bytes) e
+  o hash da entrada permaneceu igual. Relatório e script somente-leitura:
+  `RELATORIO_ANALISE_CORES_FLP_GOW2.md` e `scripts/analisar_cores_flp_gow2.py`.
+- **Pacote local recriado:** `GodOfWarTextEditor_Aprimorado_2026-09-24_R5_EXE.zip`,
+  33.611.284 B, SHA-256
+  `6d9e80c63553a1f161e5b87fa02f82b4dc656a3fc366eb8b54fdf5b33f7faa6c`;
+  `gow_text_editor.py` SHA-256
+  `944c55ecf3d87c147b7b8ed9d655d084e76c1e9ef804c23cd6c530bb6cb6b17b`.
+- **Publicação:** ZIP/release foram preparados localmente, mas não houve
+  commit/push/release: a instrução anterior do usuário é `publish_later` até
+  nova solicitação/autenticação. Nenhuma release existente foi tocada.
+
+### Sessão 17 (2026-09-23) — Exportar/importar FLP binário bruto (R4)
+Pedido do usuário: adicionar primeiro à tool a capacidade de **exportar e
+importar arquivos FLP**. Escopo confirmado pelo usuário: `FLP` binário bruto
+(`.flp`) e importação **somente no FLP atualmente selecionado**.
+
+- **Validação de formato antes de implementar:** o browser fornecido foi extraído
+  em cópia temporária e conferido em `pack/wad/flp/flp.go` / `parser.go`:
+  `FLP_MAGIC=0x21`, `HEADER_SIZE=0x60` para GoW1; `FLP_MAGIC_GOW2=0x1B`,
+  `HEADER_SIZE_GOW2=0x5C` para GoW2. Os handlers recebem exatamente
+  `wrsrc.Tag.Data`, portanto o arquivo externo correto é o **corpo cru do
+  recurso**, sem header WAD de 0x20 B. O browser decide o handler pelo magic,
+  não pelo nome da tag.
+- **Core novo:** `FLP_FILE_FILTER`, `flp_export_filename()` e
+  `validate_flp_replacement()`. A última abre alvo e importado pelo parser
+  lossless, recusa magics inválidos/estrutura truncada e bloqueia a troca
+  GoW1 ↔ GoW2. Ela não muda dados até a UI confirmar a operação.
+- **UI:** no modo FLP, as ações compartilhadas mudam de nome para
+  `Exportar FLP…` / `Importar FLP…` e permanecem ativas. Exportar escreve os
+  bytes crus; importar pede confirmação e substitui somente `active_tag.data`.
+  Nome, tipo e flags da tag continuam no WAD; o serializer recalcula somente
+  tamanho/padding da tag modificada. A pasta mais recente fica em
+  `[paths] last_flp_dir`.
+- **Descoberta/listagem:** qualquer tag cujo corpo comece em `0x21` ou `0x1B`
+  e passe pelo parser é listada, mesmo sem StaticLabels, para permitir backup/
+  troca binária. Filmes sem labels mostram instrução de usar o fluxo FLP.
+- **Dependências:** a confirmação alerta que MDL, MAT, fontes, TXR/GFX e outros
+  recursos ligados ao filme não são transferidos junto. A tool valida o FLP,
+  não a compatibilidade de assets externos do WAD de destino.
+- **Testes:** `py_compile` aprovado; `unittest discover -s tests -v` aprovou
+  **9 testes**, com **1 smoke Qt skip esperado** sem PySide6. Foram adicionados
+  testes para extensão/nome seguro, import válido, bloqueio cruzado GoW1/GoW2 e
+  reserialização de somente a tag FLP de um WAD sintético. No `R_SHELL.WAD`
+  real, `FLP_Shell` (175.788 B, SHA-256
+  `799db690049162d29c3a5744cb238459bb67a6cf7cb416701f74084e9882495a`)
+  foi exportado/reimportado em cópia temporária byte a byte, com 120 labels;
+  o WAD de origem permaneceu idêntico.
+- **Pacote preparado na época:**
+  `GodOfWarTextEditor_Aprimorado_2026-09-23_R4_EXE.zip`, 33.599.844 B,
+  SHA-256 `806b6ec9c0f23d351b111b4f0ab5f4e7cec0fcda902cd7ab94d47e96b17327b8`.
+  O ZIP local R4 foi removido em 2026-09-24, a pedido de liberar espaço após a
+  entrega R5; suas funcionalidades seguem incorporadas na R5. A fonte R5 é a
+  referência atual.
+- **Publicação GitHub:** a R4 ainda não foi enviada/criada na aba Releases porque,
+  nesta rodada, o usuário escolheu explicitamente **publicar depois** quando foi
+  solicitada a autenticação. Não afirmar que a tag `v2026.09.23-r4` existe até
+  o commit, push e release não-draft serem efetivamente concluídos.
 
 ### Sessão 0 (chat anterior — resumo do handoff original)
 - Tool criada e evoluída até a versão Qt; descoberta do UTF-8 runtime (seção 3);
@@ -772,15 +972,24 @@ mudou (garantia byte-exata).
 ```bash
 # 1) compilação
 python3 -m py_compile \
-  tool/GodOfWarTextEditor_Aprimorado_2026-09-12/gow_text_editor.py \
-  tests/test_gow1_flp.py
+  tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R7/gow_text_editor.py \
+  tests/test_gow1_flp.py tests/test_gow2_flp_colors_r6.py \
+  tests/test_inline_colors_ui_r6.py tests/test_inline_colors_ui_r7.py
 
-# 2) testes sintéticos versionados (não exigem WAD proprietário)
+# 2) testes versionados
 python3 -m unittest discover -s tests -v
+# Quando as entradas privadas estiverem disponíveis em ../uploads, a suíte R7
+# também executa a validação somente-leitura real de R_PERMA/R_SHELLA.
+# Os smokes Qt são condicionais: sem PySide6 são ignorados; com Qt offscreen,
+# R7 valida a cor realmente aplicada ao formato dos glifos no QPlainTextEdit,
+# MSGS_TXT -> MessageTemplate_LineN, estados físicos, patch de 4 bytes e
+# StaticLabel direto.
 # Inclui despacho FLP GoW1/GoW2, acentos CP1252, no-op byte-exato, edição/
-# reparse, preservação de cabeçalhos/âncoras multilinha e WAD sintético com
-# TXT + FLP_HUD coexistindo. Com PySide6 disponível, também executa o smoke
-# Qt TXT -> FLP -> TXT e a verificação de undo/mapeamento de índices.
+# reparse, preservação de cabeçalhos/âncoras multilinha, WAD sintético com
+# TXT + FLP_HUD coexistindo e transferência .flp bruta: filename seguro,
+# validação estrutural, bloqueio GoW1 ↔ GoW2 e reserialização só da tag-alvo.
+# Com PySide6 disponível, também executa o smoke Qt TXT -> FLP -> TXT e a
+# verificação de undo/mapeamento de índices/estado das ações FLP.
 
 # 3) validação real, somente em cópia privada de WAD
 # - abrir R_SHELL.WAD; confirmar 120 labels no FLP_Shell;
@@ -793,7 +1002,9 @@ python3 -m unittest discover -s tests -v
 # - abrir por load_wad_path() um WAD sem TXT e conferir FLP_Shell/120 rótulos;
 # - abrir WAD sintético ou cópia privada com TXT + FLP_HUD, alternar TXT -> FLP
 #   -> TXT e confirmar que aplicar/undo/navegação usam o recurso correto;
-# - editar um bloco e um rótulo multilinha mantendo a mesma contagem de linhas.
+# - editar um bloco e um rótulo multilinha mantendo a mesma contagem de linhas;
+# - exportar FLP_Shell, importar a cópia no mesmo FLP e confirmar payload
+#   byte-exato; tentar um FLP GoW2 e confirmar que a importação é bloqueada.
 ```
 
 No Windows do usuário: `python -m pip install PySide6` + `python gow_text_editor.py`.
@@ -816,6 +1027,15 @@ No Windows do usuário: `python -m pip install PySide6` + `python gow_text_edito
   suportam **adicionar/remover/reordenar** linhas automaticamente: mantenha a
   contagem original. Labels com fonte/glifos não resolvidos continuam somente
   leitura até existir uma estratégia específica para eles.
+- A importação `.flp` valida o container/filme e a compatibilidade GoW1/GoW2,
+  mas não consegue provar que `MDL_*`, materiais, fontes e texturas exigidos pelo
+  filme existem no WAD de destino. Essa compatibilidade ainda deve ser conferida
+  em jogo.
+- A edição de cores R5/R7 foi validada por formato, diff e round-trip, mas cada
+  WAD colorido salvo ainda precisa de teste visual em PCSX2/hardware: uma
+  BlendColor pode ser um passo de fade/tween e o resultado final é produto de
+  camadas, não um preview de cor isolada. A R7 desenha somente a cor base
+  comprovada no editor; não promete reproduzir a animação em tempo real.
 - O suporte ao `R_SHELL.WAD` foi validado estruturalmente e pela UI offscreen;
   falta o teste de um WAD salvo no PCSX2/hardware antes de distribuir a saída.
 
@@ -830,7 +1050,8 @@ No Windows do usuário: `python -m pip install PySide6` + `python gow_text_edito
   anexado; a visibilidade acompanha a do repositório. Usar tag única
   `vAAAA.MM.DD-rN`; nunca sobrescrever releases
   ou assets anteriores. Registrar URL, tag, tamanho e SHA-256 no README e neste
-  contexto. A release rascunho sem tag `GOW TEXT EDITOR` e a `v1.0` pertencem
+  contexto. **Exceção ativa:** para R4/R5/R6/R7 o usuário escolheu `publish_later`;
+  não tentar commit/push/release sem novo pedido/autenticação. A release rascunho sem tag `GOW TEXT EDITOR` e a `v1.0` pertencem
   ao usuário e devem ser preservadas. Token fine-grained pode ficar somente em
   `/home/user/.github_token`: nunca versionar, colocar em URL remota ou expor
   em documentação/chat. WADs, `.bak`, `.ini` e logs NUNCA vão ao repositório.
@@ -852,22 +1073,32 @@ No Windows do usuário: `python -m pip install PySide6` + `python gow_text_edito
 
 ```
 /home/user/
-├── CONTEXTO_MESTRE_GOW_TEXT_EDITOR.md                    <- ESTE arquivo (v3.0)
+├── CONTEXTO_MESTRE_GOW_TEXT_EDITOR.md                    <- ESTE arquivo (v3.1)
 ├── GOW-TEXT-EDITOR/
-│   ├── README.md, tests/test_gow1_flp.py, patchers/, entregas/, previews/
+│   ├── README.md, tests/test_gow1_flp.py,
+│   │   tests/test_inline_colors_ui_r7.py, patchers/, entregas/, previews/
 │   └── tool/
-│       ├── GodOfWarTextEditor_Aprimorado_2026-09-22_R3_EXE.zip <- ENTREGA atual
-│       ├── GodOfWarTextEditor_Aprimorado_2026-09-22_R2_EXE.zip <- histórico multilinha
-│       ├── GodOfWarTextEditor_Aprimorado_2026-09-12_EXE.zip    <- histórico / v1.0
-│       └── GodOfWarTextEditor_Aprimorado_2026-09-12/           <- FONTE ATUAL
-│           (gow_text_editor.py, launcher EXE, TTF, LEIA-ME, ícone e fundo)
-├── uploads/  <- R_SHELL.WAD.txt original de referência + capturas do usuário
+│       ├── GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip <- ENTREGA atual local
+│       ├── GodOfWarTextEditor_Aprimorado_2026-09-24_R7/        <- FONTE ATUAL
+│       │   (gow_text_editor.py, launcher EXE, TTF, LEIA-ME, ícone e fundo)
+│       ├── GodOfWarTextEditor_Aprimorado_2026-09-24_R6_EXE.zip + R6/ <- base estável preservada
+│       └── GodOfWarTextEditor_Aprimorado_2026-09-22_R2_EXE.zip <- histórico preservado
+│           (ZIPs/fontes locais R3, R4 e R5 removidos em 2026-09-24 para
+│            liberar espaço; R3 continua disponível na release GitHub)
+├── uploads/  <- WADs de referência somente leitura
 └── RELATORIO_AUDITORIA_GOW_TEXT_EDITOR_2026-09-22.md
 
 Arquivos removidos localmente com autorização do usuário para caber a entrega
 R3 no workspace: ZIP R1 obsoleto, clone/bare repo técnico e espelho local do
 `god_of_war_browser`. O código relevante do browser já está documentado neste
 contexto; a cópia original pode ser clonada novamente quando necessária.
+
+Em 2026-09-24, após pedido explícito de liberar espaço e reenviar a tool,
+foram removidos os ZIPs locais superseded R3 e R4 (aprox. 66 MB). Ao preparar a
+R6, o ZIP e a fonte R5 também foram substituídos/removidos. A R7 foi criada
+como revisão local sobre a R6: R2 histórico, R6 estável de recuperação e R7
+atual são preservados. WADs, referências, testes, documentação e as entregas
+portáteis/fontes correspondentes continuam no workspace.
 ```
 
 Observação: o conteúdo de `app\` (Python+PySide6 strip) NÃO persiste no
@@ -881,3 +1112,11 @@ se precisar regerar o pacote.
 - A tela de skins usa DynamicLabels do FLP para esses dois campos. Uma terceira linha da mesma mensagem não aparece porque o código do jogo só solicita/atribui os dois campos; serializar o FLP permite editar layout, labels e scripts de apresentação, mas não altera a rotina nativa que separa a mensagem nem cria automaticamente um terceiro valor.
 - O limite de ~64 caracteres é do campo/label da habilidade. Para exibir duas habilidades seria necessário alterar também a lógica no ELF (ou encontrar um campo já existente que a rotina preencha), não apenas o FLP/MSGS_TXT.
 - O browser do Mogaika suporta parse/serialize do FLP e decompilação/recompilação de scripts de apresentação; isso não equivale a recompilar as funções nativas do ELF.
+
+## Trabalho de recurso — Red Orbs GoW2 (2026-09-23)
+- Entradas analisadas **somente leitura**: `uploads/R_PERM orbs alterados.WAD.txt` (GoW1, SHA-256 `eb20a044…`) e `uploads/R_PERMA orbs originais.WAD.txt` (GoW2/runtime, SHA-256 `2d1d189a…`).
+- O efeito dos Red Orbs foi localizado nos grupos `goweaponorb` e `goweaponorbbig`, nas famílias `PTC_WOdpart`, `PTC_WOgpart` e `PTC_WOdpart1` — não é apenas um PTC isolado.
+- Foi criado `R_PERMA_RED_ORBS_COR_GOW3.WAD` (SHA-256 `fcbecae40d0dcc7ef677f7de37458ea5f1a9a1b0305945e0d38a70ad00f7c42d`, 3.507.296 bytes). Ele copia exclusivamente vetores RGB float32 da referência GoW1 para os PTCs equivalentes de orb normal/grande no GoW2; não troca arquivos PTC inteiros nem altera estrutura, tamanhos, flags ou padding.
+- Alteração binária confirmada: 98 bytes, todos nos vetores RGB planejados. O WAD de saída reabre/ressalva byte a byte no parser; `gogodmodeorb`, `gogodmodeorbbig` e `PTC_SWO*` foram mantidos byte a byte.
+- Relatório: `RELATORIO_RED_ORBS_GOW2.md`. Script reprodutível com hashes obrigatórios: `scripts/aplicar_cor_red_orbs_gow3.py`.
+- Falta somente o teste visual do usuário em PCSX2/hardware para validar a aparência runtime.

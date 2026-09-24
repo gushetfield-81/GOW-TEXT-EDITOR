@@ -15,7 +15,10 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "tool" / "GodOfWarTextEditor_Aprimorado_2026-09-12" / "gow_text_editor.py"
+# R5 is the maintained source; the synthetic GoW1 suite also guards that its
+# parser and raw-FLP transfer behavior remained compatible while adding GoW2
+# text-color editing.
+SOURCE = ROOT / "tool" / "GodOfWarTextEditor_Aprimorado_2026-09-24_R6" / "gow_text_editor.py"
 
 
 def load_editor_module():
@@ -238,9 +241,26 @@ class GoW1StaticLabelTests(unittest.TestCase):
                 self.assertTrue(window._is_main_flp_mode())
                 self.assertEqual(window.active_tag.name, "FLP_HUD")
                 self.assertEqual(window.editor.toPlainText(), "Opções")
+                # No modo FLP, as mesmas ações de Arquivo viram transferência
+                # binária selecionada, em vez de ficarem bloqueadas como na R3.
+                self.assertTrue(window.action_export.isEnabled())
+                self.assertTrue(window.action_import.isEnabled())
+                self.assertEqual(window.action_export.text(), "Exportar FLP…")
+                self.assertEqual(window.action_import.text(), "Importar FLP…")
                 window.editor.setPlainText("Opção")
                 window.apply_current()
                 self.assertEqual(window.active_flp_movie.label(0)["text"], "Opção")
+
+                # O helper de UI recebe somente o FLP selecionado e mantém a
+                # tag/nome no WAD; a caixa de diálogo de arquivos só o chama
+                # depois da validação e confirmação do usuário.
+                replacement = synthetic_gow1_flp(("Opções",))
+                replacement_movie = EDITOR.validate_flp_replacement(window.active_tag.data, replacement)
+                window._update_active_flp_after_import(replacement, replacement_movie)
+                self.assertEqual(window.active_tag.name, "FLP_HUD")
+                self.assertEqual(window.active_tag.data, replacement)
+                self.assertEqual(window.active_flp_movie.label(0)["text"], "Opções")
+                self.assertIn("FLP_HUD", window.resource_box.item(1).text())
 
                 # Undoing the prior TXT edit while FLP is selected must not treat
                 # visual row 1 as text resource 1. _goto_message maps back to row 0.
@@ -259,6 +279,53 @@ class GoW1StaticLabelTests(unittest.TestCase):
                 window.hide()
                 window.deleteLater()
                 app.processEvents()
+
+
+class FLPBinaryTransferTests(unittest.TestCase):
+    """Raw .flp export/import contract, independent of the Qt file dialogs."""
+
+    def test_export_filename_is_safe_and_uses_flp_extension(self):
+        self.assertEqual(EDITOR.flp_export_filename("FLP_Shell"), "FLP_Shell.flp")
+        self.assertEqual(EDITOR.flp_export_filename("FLP_HUD.FLP"), "FLP_HUD.FLP")
+        self.assertEqual(EDITOR.flp_export_filename("  pasta/FLP_Menu\\teste  "), "pasta_FLP_Menu_teste.flp")
+        self.assertEqual(EDITOR.flp_export_filename(""), "movie.flp")
+
+    def test_replacement_accepts_same_game_and_rejects_cross_game(self):
+        target = synthetic_gow1_flp(("Opções",))
+        imported = synthetic_gow1_flp(("Opção",))
+        movie = EDITOR.validate_flp_replacement(target, imported)
+        self.assertEqual(movie.format_name, "GoW1")
+        self.assertEqual(movie.label(0)["text"], "Opção")
+
+        with self.assertRaisesRegex(ValueError, "incompatível"):
+            EDITOR.validate_flp_replacement(target, synthetic_gow2_flp())
+        with self.assertRaisesRegex(ValueError, "magic|pequeno"):
+            EDITOR.validate_flp_replacement(target, b"not a FLP")
+
+    def test_imported_raw_flp_reserializes_only_target_tag(self):
+        raw_wad = synthetic_mixed_txt_flp_wad()
+        wad = EDITOR.WadFile(raw_wad)
+        text_segment_before = wad.tags[1].raw_segment
+        target = next(tag for tag in wad.tags if tag.name == "FLP_HUD")
+        target_name = target.name_raw
+        target_flags = target.flags
+        target_original = target.data
+        imported = synthetic_gow1_flp(("Opção",))
+        self.assertNotEqual(imported, target_original)
+
+        movie = EDITOR.validate_flp_replacement(target_original, imported)
+        target.data = imported
+        serialized = wad.serialize()
+        rebuilt = EDITOR.WadFile(serialized)
+        rebuilt_target = next(tag for tag in rebuilt.tags if tag.name == "FLP_HUD")
+
+        self.assertEqual(rebuilt.tags[1].raw_segment, text_segment_before)
+        self.assertEqual(rebuilt_target.name_raw, target_name)
+        self.assertEqual(rebuilt_target.flags, target_flags)
+        self.assertEqual(rebuilt_target.size_field, len(imported))
+        self.assertEqual(rebuilt_target.data, imported)
+        self.assertEqual(EDITOR.open_flp_movie(rebuilt_target.data).label(0)["text"], "Opção")
+        self.assertEqual(movie.format_name, "GoW1")
 
 
 if __name__ == "__main__":

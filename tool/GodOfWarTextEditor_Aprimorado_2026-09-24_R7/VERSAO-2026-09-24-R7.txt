@@ -1,0 +1,52 @@
+GOD OF WAR TEXT EDITOR — PACOTE PORTÁTIL WINDOWS x64
+Build: 2026-09-24 R7 — cores WYSIWYG dentro do texto em edição
+
+NOVO NESTA REVISÃO
+- A antiga tabela/painel externo de cores deixou de ser a interação principal.
+  Os próprios glifos da caixa TEXTO DA MENSAGEM agora aparecem na cor base
+  física associada, mantendo o conteúdo como texto puro e editável.
+- No cabeçalho da mesma caixa, COR BASE permite escolher a instância/campo de
+  cor da linha sob o cursor; o botão RGBA colorido abre a edição sem abandonar
+  a mensagem ou o rótulo que está aberto.
+- MSGS_TXT GoW2: cada linha de página é pintada pelo vínculo de runtime
+  PS2_MessageTemplate_Line1..Line5. Todas as instâncias físicas de
+  DynamicLabel continuam selecionáveis. Linha vazia e -- não recebem cor
+  inventada.
+- StaticLabels GoW2: somente a cor direta do RenderCommand associado ao bloco
+  de texto é usada e editada.
+- BlendColors continuam tratados como animações: a interface mostra a cor base
+  e informa quantas animações alcançam o texto, sem forjar uma cor estática.
+- A pintura usa QSyntaxHighlighter e bloqueia os sinais de formatação do
+  documento; assim, editar texto/linhas atualiza as cores sem recursão e sem
+  mudar os caracteres serializados.
+
+VALIDAÇÃO R7
+- py_compile aprovado.
+- A regressão Qt offscreen verifica que os formatos de glifo realmente são
+  pintados no QPlainTextEdit, a troca de cursor Line1 -> Line2, a seleção de
+  estado físico alternativo, a edição cirúrgica de DynamicLabel e StaticLabel
+  e a preservação do texto puro.
+- Nenhum WAD de entrada foi gravado: todos os patches de teste ocorreram em
+  memória e o hash dos WADs foi conferido após os testes.
+
+SEGURANÇA
+- DynamicLabel: somente 4 bytes BGRA.
+- StaticLabel: somente 4 bytes RGBA.
+- O WAD só é escrito quando o usuário usa Salvar WAD como…; use sempre uma
+  cópia e teste o resultado no jogo.
+
+PUBLICAÇÃO
+Este pacote foi preparado localmente. A publicação no GitHub/Releases continua
+pendente de nova solicitação/autenticação do usuário; nenhuma release anterior
+foi alterada ou sobrescrita.
+
+Tool By: Gus Hetfield
+Special Thanks: Mogaika
+
+INTEGRIDADE (arquivos dentro desta pasta)
+- gow_text_editor.py SHA-256:
+  fce152f0b8e1abd5998d139d5afeb91e6c77efec64d5ed765128fbd3a4d6ea0a
+- LEIA-ME.txt SHA-256:
+  a756b1a3ece813965e325622733847ed77c7a7ce15ff6ea2d5b019aaaedbfe12
+- GodOfWarTextEditor.exe SHA-256:
+  7c43368fd54d101fa0d3400d63dc8ac122782f2702f2e2248156497858dde950
