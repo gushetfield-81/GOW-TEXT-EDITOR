@@ -36,9 +36,10 @@ SEGURANÇA
   cópia e teste o resultado no jogo.
 
 PUBLICAÇÃO
-Este pacote foi preparado localmente. A publicação no GitHub/Releases continua
-pendente de nova solicitação/autenticação do usuário; nenhuma release anterior
-foi alterada ou sobrescrita.
+Publicado no GitHub em 2026-09-24 como v2026.09.24-r7:
+https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r7
+A release anexa este ZIP validado. Nenhum WAD de entrada foi publicado e
+nenhuma release anterior foi sobrescrita.
 
 Tool By: Gus Hetfield
 Special Thanks: Mogaika

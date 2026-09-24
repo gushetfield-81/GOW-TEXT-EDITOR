@@ -84,6 +84,6 @@ permaneceram:
 ## Entrega local
 
 - ZIP: `tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip`
-- Tamanho: 33.615.396 bytes
-- SHA-256: `b7c4baaa02520633486232f0370e74a28bdd7ac21f0a7b1d4746229b062be638`
-- Publicação remota: continua bloqueada por `publish_later`.
+- Tamanho: 33.615.425 bytes
+- SHA-256: `88c1ef57acda7b5bd013e03581d179deaa09f9468e04663ac3726a794edce7aa`
+- Publicação remota: [`v2026.09.24-r7`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r7) publicada em 2026-09-24.

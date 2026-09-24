@@ -1,14 +1,14 @@
 # God of War Text Editor — 2026-09-24 R7
 
-> **Status:** pacote preparado e validado localmente. A publicação em
-> GitHub/Releases continua pendente por decisão anterior (`publish_later`);
-> esta nota não indica que uma release remota exista.
+> **Status:** publicado no GitHub em 2026-09-24 como
+> [`v2026.09.24-r7`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r7). O ZIP anexado é o mesmo asset
+> validado localmente; nenhum WAD de entrada foi publicado.
 
 ## Asset preparado
 
 - `GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip`
-- Tamanho: **33.615.396 bytes**
-- SHA-256: `b7c4baaa02520633486232f0370e74a28bdd7ac21f0a7b1d4746229b062be638`
+- Tamanho: **33.615.425 bytes**
+- SHA-256: `88c1ef57acda7b5bd013e03581d179deaa09f9468e04663ac3726a794edce7aa`
 
 ## Correção de interação: cores WYSIWYG no próprio texto
 

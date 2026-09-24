@@ -53,7 +53,7 @@ god-of-war-text-editor/
 | **Código Python R7** (`gow_text_editor.py`) | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R7/`](tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R7/gow_text_editor.py) — requer Python 3.10+ e `pip install PySide6` |
 | **Pacote R7 preparado localmente — 2026-09-24** | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip`](tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip) — ZIP portátil com cores WYSIWYG nos glifos de StaticLabel e MSGS_TXT |
 | **Última release GitHub publicada — 2026-09-22 R3** | [`v2026.09.22-r3`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.22-r3) — TXT + FLP juntos na tela principal |
-| **Status de publicação R7** | O ZIP foi preparado localmente; a publicação GitHub/Releases segue adiada até nova solicitação/autenticação do usuário. Nenhuma release existente foi sobrescrita. Os ZIPs locais R3/R4/R5 foram descartados para manter espaço, preservando R2, R6 e a fonte/entrega R7. |
+| **Release R7 publicada — 2026-09-24** | [`v2026.09.24-r7`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r7) — fonte, testes, documentação e ZIP portátil publicados; nenhum WAD de entrada foi enviado. R2/R6 continuam preservadas como referências históricas. |
 
 > **Nota de validação:** a R7 mantém os TXT usuais, os FLPs compatíveis na lista
 > principal, `FLP_Shell`, labels multilinha seguros, o mapeamento correto ao
@@ -80,7 +80,7 @@ O launcher e o código versionados aqui:
 | `tool/…/GodOfWarTextEditor.exe` (launcher x64) | 179.712 | `7c43368fd54d101fa0d3400d63dc8ac122782f2702f2e2248156497858dde950` |
 | `tool/…/R7/gow_text_editor.py` | 290.071 | `fce152f0b8e1abd5998d139d5afeb91e6c77efec64d5ed765128fbd3a4d6ea0a` |
 | `tool/…/R7/LEIA-ME.txt` | 19.955 | `a756b1a3ece813965e325622733847ed77c7a7ce15ff6ea2d5b019aaaedbfe12` |
-| `tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip` | 33.615.396 | `b7c4baaa02520633486232f0370e74a28bdd7ac21f0a7b1d4746229b062be638` |
+| `tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip` | 33.615.425 | `88c1ef57acda7b5bd013e03581d179deaa09f9468e04663ac3726a794edce7aa` |
 | `tool/GodOfWarTextEditor_Aprimorado_2026-09-22_R2_EXE.zip` (histórico) | 33.596.031 | `cdb7dd3d3f4d09ab913347528f5ba88d69e1e77ddda77655b2734ad513c674bd` |
 
 **Não incluídos neste repositório** (por direitos autorais do jogo e/ou limite

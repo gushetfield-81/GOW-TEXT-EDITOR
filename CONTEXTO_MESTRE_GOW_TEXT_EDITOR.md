@@ -180,13 +180,21 @@ na cor associada e editar essa cor sem abandonar o texto aberto.
   `RELATORIO_INTERACAO_CORES_TEXTO_R7.md` registram fluxo, associação,
   limitações e validação WYSIWYG.
 - **Pacote local R7:**
-  `GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip`, 33.615.396 B,
-  SHA-256 `b7c4baaa02520633486232f0370e74a28bdd7ac21f0a7b1d4746229b062be638`;
+  `GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip`, 33.615.425 B,
+  SHA-256 `88c1ef57acda7b5bd013e03581d179deaa09f9468e04663ac3726a794edce7aa`;
   fonte SHA-256
   `fce152f0b8e1abd5998d139d5afeb91e6c77efec64d5ed765128fbd3a4d6ea0a`.
   `unzip -t`, compilação da fonte extraída e presença de `app/python.exe`
   foram conferidos; sem `.ini`, `.log`, `.bak` ou `__pycache__` no ZIP.
-- **Publicação:** permanece `publish_later`; não houve commit, push ou release.
+- **Publicação posterior:** o usuário autorizou explicitamente a publicação.
+  A R7 foi enviada em `main`, tag
+  [`v2026.09.24-r7`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r7) e Release pública com o ZIP R7 anexado.
+
+### Sessão 21 (2026-09-24) — Publicação GitHub da R7
+- Após autorização explícita do usuário e correção da permissão de escrita do
+  PAT, o commit `2216ff6ea1b6d4170e537ddff628c2b153d23899` foi enviado para
+  `main`; a tag `v2026.09.24-r7` identifica a R7 e a Release recebe o ZIP
+  portátil validado. Nenhum WAD, token, `.ini`, log ou backup foi enviado.
 
 ### Sessão 19 (2026-09-24) — Cores associadas ao texto durante a edição (R6)
 Pedido do usuário: ao selecionar um texto para editar, ver as cores associadas
@@ -1050,8 +1058,10 @@ No Windows do usuário: `python -m pip install PySide6` + `python gow_text_edito
   anexado; a visibilidade acompanha a do repositório. Usar tag única
   `vAAAA.MM.DD-rN`; nunca sobrescrever releases
   ou assets anteriores. Registrar URL, tag, tamanho e SHA-256 no README e neste
-  contexto. **Exceção ativa:** para R4/R5/R6/R7 o usuário escolheu `publish_later`;
-  não tentar commit/push/release sem novo pedido/autenticação. A release rascunho sem tag `GOW TEXT EDITOR` e a `v1.0` pertencem
+  contexto. **Exceção histórica:** para R4/R5/R6 o usuário escolheu
+  `publish_later`. A R7 foi explicitamente autorizada e publicada em
+  `v2026.09.24-r7`; mudanças futuras voltam a exigir autorização/autenticação
+  nova antes de commit/push/release. A release rascunho sem tag `GOW TEXT EDITOR` e a `v1.0` pertencem
   ao usuário e devem ser preservadas. Token fine-grained pode ficar somente em
   `/home/user/.github_token`: nunca versionar, colocar em URL remota ou expor
   em documentação/chat. WADs, `.bak`, `.ini` e logs NUNCA vão ao repositório.
