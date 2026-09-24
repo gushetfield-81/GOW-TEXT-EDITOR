@@ -1225,4 +1225,9 @@ permite.
 
 ### Publicação R9
 
-Preencher após push/release: tag, URL, tamanho e SHA-256 do ZIP.
+- Commit funcional publicado: `0967dc6b88531f7d714f08408a33dfd7eb80b314`.
+- Tag/release não-draft: [`v2026.09.24-r9`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r9), release ID `396011875`.
+- Asset: `GodOfWarTextEditor_Aprimorado_2026-09-24_R9_EXE.zip`, 33.628.339 bytes,
+  SHA-256 `d2c6c40dac2748ae4129590c1d7882a6fe6f044e1afe2a1e70572c4eeddb3968`.
+- Release confirmada como `draft=false` e `prerelease=false`; nenhum WAD de
+  entrada foi publicado.

@@ -41,3 +41,10 @@ não o codifica.
 
 Nenhum WAD, `.ini`, cache, log ou credencial acompanha a release. Teste WADs
 salvos no PCSX2/console antes de distribuir.
+
+## Publicação
+
+Publicada como [`v2026.09.24-r9`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r9)
+(não-draft, não-prerelease). Asset:
+`GodOfWarTextEditor_Aprimorado_2026-09-24_R9_EXE.zip` — 33.628.339 bytes,
+SHA-256 `d2c6c40dac2748ae4129590c1d7882a6fe6f044e1afe2a1e70572c4eeddb3968`.
