@@ -12,7 +12,10 @@ estrutural e bloqueio de troca entre formatos GoW1 e GoW2. Na R5, FLPs GoW2
 recebem edição cirúrgica das três camadas de cor de texto: DynamicLabel,
 RenderCommand de StaticLabel e BlendColors/KeyFrames. Na R7, as cores base
 fisicamente associadas são pintadas nos próprios glifos do editor, inclusive
-no vínculo real `MSGS_TXT → MessageTemplate_LineN`.
+no vínculo real `MSGS_TXT → MessageTemplate_LineN`. A R8 acrescenta a camada
+real de estilo do runtime Flash: controles `[*1]`…`[*4]` de `MSGS_TXT` são
+renderizados no próprio texto e editam os RGB físicos `FlashMsgNColor` de
+`GBL_Global`, sem transformar o recurso em HTML.
 
 > **Tool By: Gus Hetfield** | **Special Thanks: Mogaika**
 
@@ -25,14 +28,14 @@ god-of-war-text-editor/
 ├── CONTEXTO_MESTRE_GOW_TEXT_EDITOR.md   ← documentação viva (formatos binários,
 │                                           decisões, regras, histórico — LEIA PRIMEIRO)
 ├── tool/
-│   ├── GodOfWarTextEditor_Aprimorado_2026-09-24_R7/ ← código-fonte da tool (PySide6)
-│   │   ├── gow_text_editor.py                        editor WAD/MSGS/FLP + cores WYSIWYG GoW2
+│   ├── GodOfWarTextEditor_Aprimorado_2026-09-24_R8/ ← código-fonte da tool (PySide6)
+│   │   ├── gow_text_editor.py                        editor WAD/MSGS/FLP + cores WYSIWYG/runtime inline
 │   │   ├── GodOfWarTextEditor.exe                    launcher Windows
 │   │   └── GODOFWAR.TTF, LEIA-ME.txt, icone/, imagens_de_fundo/
-│   ├── GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip ← pacote portátil atual
+│   ├── GodOfWarTextEditor_Aprimorado_2026-09-24_R8_EXE.zip ← pacote portátil atual
 │   └── GodOfWarTextEditor_Aprimorado_2026-09-22_R2_EXE.zip ← histórico preservado
 │       (os ZIPs locais R3/R4/R5 foram removidos para liberar espaço; R3 segue
-│        disponível na release GitHub e R7 substitui localmente as revisões anteriores)
+│        disponível na release GitHub e R8 substitui localmente as revisões anteriores)
 ├── patchers/                            ← scripts que alteram dados do jogo
 │   ├── shell_americano/adicionar_acentos_shell.py    (ã Ã õ Õ no R_SHELLA — EUA)
 │   ├── shell_europeu/adicionar_acentos_shellu.py     (ã Ã õ Õ no R_SHELLU — Europa)
@@ -50,18 +53,18 @@ god-of-war-text-editor/
 
 | O quê | Onde |
 |---|---|
-| **Código Python R7** (`gow_text_editor.py`) | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R7/`](tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R7/gow_text_editor.py) — requer Python 3.10+ e `pip install PySide6` |
-| **Pacote R7 preparado localmente — 2026-09-24** | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip`](tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip) — ZIP portátil com cores WYSIWYG nos glifos de StaticLabel e MSGS_TXT |
-| **Última release GitHub publicada — 2026-09-22 R3** | [`v2026.09.22-r3`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.22-r3) — TXT + FLP juntos na tela principal |
-| **Release R7 publicada — 2026-09-24** | [`v2026.09.24-r7`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r7) — fonte, testes, documentação e ZIP portátil publicados; nenhum WAD de entrada foi enviado. R2/R6 continuam preservadas como referências históricas. |
+| **Código Python R8** (`gow_text_editor.py`) | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8/`](tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8/gow_text_editor.py) — requer Python 3.10+ e `pip install PySide6` |
+| **Pacote R8 preparado — 2026-09-24** | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8_EXE.zip`](tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8_EXE.zip) — ZIP portátil com cores WYSIWYG físicas e controles inline reais `[*N]` de MSGS_TXT |
+| **Release R8** | `v2026.09.24-r8` — fonte, testes, documentação e ZIP serão publicados sem WADs de entrada; R7 continua como referência histórica. |
+| **Release R7 publicada — 2026-09-24** | [`v2026.09.24-r7`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r7) — cores físicas WYSIWYG de StaticLabel/MSGS_TXT. |
 
-> **Nota de validação:** a R7 mantém os TXT usuais, os FLPs compatíveis na lista
-> principal, `FLP_Shell`, labels multilinha seguros, o mapeamento correto ao
-> alternar TXT → FLP → TXT e a transferência binária do FLP selecionado. Ela
-> desenha as cores base associadas nos próprios glifos editáveis de StaticLabels
-> e do vínculo real `MSGS_TXT → PS2_MessageTemplate_LineN`; BlendColors seguem
-> descritas como animações, sem aparência estática inventada. Antes de distribuir
-> um **WAD editado**, ainda é recomendado testá-lo no PCSX2 ou console.
+> **Nota de validação:** a R8 preserva os fluxos TXT/FLP, `FLP_Shell`, labels
+> multilinha, transferência de FLP bruto e a camada física WYSIWYG da R7. Em
+> `MSGS_TXT`, ela também interpreta `[*]`, `[*0]` e `[*1]`…`[*4]` com os RGB
+> reais de `GBL_Global`, limitados à mesma `MessageTemplate_LineN` que o runtime
+> constrói. O texto continua puro/serializável e BlendColors continuam animações,
+> não uma aparência inventada. Antes de distribuir um **WAD editado**, ainda é
+> recomendado testá-lo no PCSX2 ou console.
 
 ## 🚀 Instalação rápida (cada patch)
 
@@ -78,9 +81,10 @@ O launcher e o código versionados aqui:
 | Arquivo | Tamanho (B) | SHA-256 |
 |---|---|---|
 | `tool/…/GodOfWarTextEditor.exe` (launcher x64) | 179.712 | `7c43368fd54d101fa0d3400d63dc8ac122782f2702f2e2248156497858dde950` |
-| `tool/…/R7/gow_text_editor.py` | 290.071 | `fce152f0b8e1abd5998d139d5afeb91e6c77efec64d5ed765128fbd3a4d6ea0a` |
-| `tool/…/R7/LEIA-ME.txt` | 19.955 | `a756b1a3ece813965e325622733847ed77c7a7ce15ff6ea2d5b019aaaedbfe12` |
-| `tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip` | 33.615.425 | `88c1ef57acda7b5bd013e03581d179deaa09f9468e04663ac3726a794edce7aa` |
+| `tool/…/R8/gow_text_editor.py` | 314.897 | `177bdcd16437a7c4649cd26ad52dc9e898822cbe9518ed0568e92395fa1173fb` |
+| `tool/…/R8/LEIA-ME.txt` | 22.006 | `1ca6086a20191843b1a0aca78815b66da475854ef1140c595cce136e39b8db95` |
+| `tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8_EXE.zip` | 33.621.831 | `532e58486d233bffd8df0bfb595166d74aa3a933abac63367798e7fa4b4bb8c9` |
+| `tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip` (histórico) | 33.615.425 | `88c1ef57acda7b5bd013e03581d179deaa09f9468e04663ac3726a794edce7aa` |
 | `tool/GodOfWarTextEditor_Aprimorado_2026-09-22_R2_EXE.zip` (histórico) | 33.596.031 | `cdb7dd3d3f4d09ab913347528f5ba88d69e1e77ddda77655b2734ad513c674bd` |
 
 **Não incluídos neste repositório** (por direitos autorais do jogo e/ou limite
@@ -110,6 +114,7 @@ de 25 MB/arquivo do upload web do GitHub):
 | Sessão 18 (2026-09-24) | Cores de texto FLP GoW2 — R5 | `Ferramentas → Cores de texto do FLP…` separa cor base DynamicLabel, cor direta StaticLabel e tintas BlendColors/KeyFrames; mostra escopo/rótulos atingidos e atualiza apenas 4/8 bytes do campo escolhido |
 | Sessão 19 (2026-09-24) | Cores durante a edição — R6 | Painel inline relaciona StaticLabel ao seu RenderCommand/BlendColors e `MSGS_TXT` ao `MessageTemplate_LineN` sob o cursor; cores editáveis sem abandonar o texto ativo |
 | Sessão 20 (2026-09-24) | Cores WYSIWYG durante a edição — R7 | Substitui a interação de tabela: glifos do editor recebem a cor base física; seletor/botão ficam no cabeçalho da própria caixa; preserva campos diretos e trata BlendColors apenas como animações |
+| Sessão 21 (2026-09-24) | Cores inline reais `MSGS_TXT` — R8 | `[*]`/`[*0]` e `[*1]`…`[*4]` passam a renderizar no editor/prévia com `FlashMsgNColor` extraído de `GBL_Global`; inserção/troca/wrap e patch RGB de 12 bytes respeitam o reset por `MessageTemplate_LineN` |
 
 ## ⚠️ Nota importante
 
@@ -223,3 +228,33 @@ cirúrgico de DynamicLabel e StaticLabel, texto preservado e hashes das entradas
 imutáveis. A suíte completa com Qt offscreen passou **18/18** testes. Consulte
 [`tool/RELEASE_NOTES_2026-09-24_R7.md`](tool/RELEASE_NOTES_2026-09-24_R7.md)
 e [`RELATORIO_INTERACAO_CORES_TEXTO_R7.md`](RELATORIO_INTERACAO_CORES_TEXTO_R7.md).
+
+## 🎨 Cores inline reais de `MSGS_TXT` — R8
+
+A R8 resolve a camada que a R7 não podia mostrar só pelas cores físicas do
+FLP: comandos Flash literais `[*N]` dentro do próprio `MSGS_TXT`.
+
+- **`[*]` e `[*0]`:** retornam à cor base física da linha.
+- **`[*1]`…`[*4]`:** aplicam os RGB reais de
+  `GBL_Global.FlashMsg1Color`…`FlashMsg4Color` aos glifos posteriores da
+  **mesma** linha. No `R_PERMA` validado, são `#7F2805`, `#AA5914`,
+  `#666666` e `#6699CC`.
+- **Linha é uma fronteira real:** `DoMsgPage` entrega texto a
+  `MessageTemplate_LineN`, e cada chamada de `EditTextBuild` reinicia o estilo
+  em zero. A R8 não deixa a cor atravessar Enter/`--`; seleção multilinha
+  recebe um par de marcadores por linha.
+- **WYSIWYG sem rich text:** o `QSyntaxHighlighter` colore somente os formatos
+  visuais. `[*N]`, `[Icon…]` e o texto continuam bytes serializáveis; a
+  mensagem 701 passa a exibir `LÂMINAS DE ATENA` na cor `#7F2805`.
+- **Edição no mesmo painel:** a barra **COR INLINE** insere, troca ou envolve
+  controles; **Editar RGB runtime…** toca exclusivamente os três `float`s RGB
+  do `FlashMsgNColor` selecionado no Data Context (`GBL_Global`). Alfa e todos
+  os bytes fora da janela de 12 bytes são preservados.
+- **R_SHELLA:** sem `MSGS_TXT`/`GBL_Global`, não recebe paleta fictícia; a
+  edição de cores FLP existente permanece disponível.
+
+A regressão R8 valida o Data/Export IFF, os estilos observados, reset por
+linha, serialização raw, round-trip, localização binária do patch e Qt
+`offscreen` (editor + prévia + cursor + RGB). Consulte
+[`RELATORIO_CORES_INLINE_RUNTIME_R8.md`](RELATORIO_CORES_INLINE_RUNTIME_R8.md)
+e [`tool/RELEASE_NOTES_2026-09-24_R8.md`](tool/RELEASE_NOTES_2026-09-24_R8.md).

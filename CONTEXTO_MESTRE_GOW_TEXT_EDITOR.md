@@ -1130,3 +1130,44 @@ se precisar regerar o pacote.
 - Alteração binária confirmada: 98 bytes, todos nos vetores RGB planejados. O WAD de saída reabre/ressalva byte a byte no parser; `gogodmodeorb`, `gogodmodeorbbig` e `PTC_SWO*` foram mantidos byte a byte.
 - Relatório: `RELATORIO_RED_ORBS_GOW2.md`. Script reprodutível com hashes obrigatórios: `scripts/aplicar_cor_red_orbs_gow3.py`.
 - Falta somente o teste visual do usuário em PCSX2/hardware para validar a aparência runtime.
+
+## Tool R8 — cores inline reais de `MSGS_TXT` (2026-09-24)
+
+- Nova árvore ativa: `tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8/`.
+  A R7 permanece intacta como referência/publicação anterior.
+- A R8 implementa os controles literais Flash `[*N]` sem HTML: eles ficam no
+  `MSGS_TXT`, são discretos/visíveis no `QPlainTextEdit`, e os spans WYSIWYG
+  são calculados por `QSyntaxHighlighter` sobre a cor física base R7.
+- Fundamentação: `DoMsgPage` passa cada linha para
+  `MessageTemplate_LineN`; `EditTextBuild` inicia `style = 0` para cada chamada
+  e consome `[*N]`; `EditTextRender` usa as matrizes FlashMsg. Portanto, a
+  cor persiste só no restante da **mesma linha**, nunca através de Enter/`--`.
+  Seleções multilinha recebem um par de tokens por linha.
+- O Data/Export IFF localiza `GBL_Global` sem busca frágil: em
+  `R_PERMA.WAD.txt`, Data `DC_WAD_R_Perm` índice 3348, `GBL_Global` em `0x6BE0`
+  e `FlashMsg1Color` em `0x6FF0`. RGB runtime extraído:
+  `[*1]=#7F2805`, `[*2]=#AA5914`, `[*3]=#666666`, `[*4]=#6699CC`.
+  Estilos 5–6 são lidos só para diagnóstico; o renderer comprovado constrói
+  1–4.
+- A barra **COR INLINE** insere/troca/wrap de tokens no próprio editor e
+  **Editar RGB runtime…** toca exclusivamente os 12 bytes dos três floats RGB
+  de `FlashMsg1Color`…`FlashMsg4Color`; alfa e o restante do Data Context são
+  preservados. `R_SHELLA` não tem `MSGS_TXT`/`GBL_Global`, portanto não ganha
+  um campo inventado.
+- A prévia CRT aplica o mesmo plano de cores e esconde visualmente só o token;
+  macros `[Icon…]` continuam referência textual (sprites não são simulados).
+- Novas regressões: `tests/test_runtime_inline_styles_r8.py` e
+  `tests/test_inline_styles_ui_r8.py`. A seleção de entrega com Qt offscreen
+  passou **24/24**; cobre paleta física, MSG 701 `LÂMINAS DE ATENA`, reset por
+  linha, `[*0]`, estilos 1/2/4, raw round-trip, patch RGB localizado, cursor,
+  inserção/troca/wrap, preview e preservação de FLP/R7. Os hashes dos WADs de
+  entrada foram preservados.
+- Pacote portátil preparado:
+  `tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8_EXE.zip`, 33.621.831 bytes,
+  SHA-256 `532e58486d233bffd8df0bfb595166d74aa3a933abac63367798e7fa4b4bb8c9`.
+  `unzip -t` e `py_compile` da fonte extraída passaram; sem `.ini`, logs,
+  backups ou `__pycache__`.
+- Documentação: `RELATORIO_CORES_INLINE_RUNTIME_R8.md` e
+  `tool/RELEASE_NOTES_2026-09-24_R8.md`.
+- Publicação solicitada pelo usuário: preparar/usar a tag nova
+  `v2026.09.24-r8`, não sobrescrever R7 nem publicar WADs de entrada.

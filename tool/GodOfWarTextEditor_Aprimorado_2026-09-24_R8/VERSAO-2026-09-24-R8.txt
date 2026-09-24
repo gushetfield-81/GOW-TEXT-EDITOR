@@ -1,0 +1,56 @@
+GOD OF WAR TEXT EDITOR — PACOTE PORTÁTIL WINDOWS x64
+Build: 2026-09-24 R8 — cores inline reais [*N] de MSGS_TXT
+
+NOVO NESTA REVISÃO
+- A caixa TEXTO DA MENSAGEM passa a reproduzir os controles runtime Flash
+  [*N] do MSGS_TXT. O token continua visível/editável como texto puro, mas os
+  glifos posteriores recebem a cor real do jogo.
+- [*] e [*0] retornam à cor física base da linha. [*1]..[*4] usam
+  FlashMsg1Color..FlashMsg4Color de GBL_Global; no R_PERMA validado:
+  #7F2805, #AA5914, #666666 e #6699CC.
+- O estilo é local à mesma linha: cada MessageTemplate_LineN reinicia
+  EditTextBuild com style 0. A tool não deixa a cor vazar através de Enter ou
+  de --.
+- A barra COR INLINE fica no editor: insere no cursor, troca somente o token
+  sob o cursor e envolve seleções preservando [Icon...] e outros controles.
+  Se a seleção usa várias linhas, aplica um par por linha.
+- Editar RGB runtime... altera somente os três floats RGB do FlashMsgNColor
+  escolhido dentro do GBL_Global. Alfa e todo o restante do Data Context são
+  preservados.
+- A prévia CRT usa o mesmo plano de cor e oculta somente o controle [*N].
+
+EXEMPLO VALIDADO
+MSG 701 do R_PERMA: [*1] [IconBlade] LÂMINAS DE ATENA
+O título é renderizado na tool como #7F2805; o marcador permanece serializável.
+
+SEGURANÇA
+- Nenhum WAD de entrada foi gravado durante desenvolvimento/validação.
+- O WAD só é escrito por Salvar WAD como...; use sempre uma cópia e teste no
+  jogo/PCSX2 antes de distribuir.
+- R_SHELLA não contém MSGS_TXT/GBL_Global: a R8 mantém a edição FLP existente,
+  mas não cria uma paleta inline inexistente.
+- DynamicLabel/StaticLabel/BlendColor da R7 continuam disponíveis.
+
+VALIDAÇÃO R8
+- py_compile da fonte aprovado.
+- Regressão de entrega Qt/offscreen: 24/24 testes aprovados.
+- Testes de núcleo: extração do GBL_Global, estilos por linha, reset [*0],
+  seleção multilinha, round-trip raw do MSGS_TXT e patch RGB de 12 bytes.
+- Smoke Qt/PySide6 offscreen: R_PERMA abriu, LÂMINAS DE ATENA foi colorida,
+  preview/editor concordaram, inserção/troca/wrap e diálogo RGB foram testados.
+- Hashes dos WADs R_PERMA e R_SHELLA foram preservados.
+
+PUBLICAÇÃO
+Preparado para publicação como v2026.09.24-r8.
+Nenhum WAD de entrada acompanha esta release.
+
+Tool By: Gus Hetfield
+Special Thanks: Mogaika
+
+INTEGRIDADE (arquivos dentro desta pasta)
+- gow_text_editor.py SHA-256:
+  177bdcd16437a7c4649cd26ad52dc9e898822cbe9518ed0568e92395fa1173fb
+- LEIA-ME.txt SHA-256:
+  1ca6086a20191843b1a0aca78815b66da475854ef1140c595cce136e39b8db95
+- GodOfWarTextEditor.exe SHA-256:
+  7c43368fd54d101fa0d3400d63dc8ac122782f2702f2e2248156497858dde950
