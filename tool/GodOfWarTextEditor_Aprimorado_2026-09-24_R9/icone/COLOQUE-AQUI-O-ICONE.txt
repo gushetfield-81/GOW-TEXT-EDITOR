@@ -1,0 +1,13 @@
+COLOQUE AQUI O ICONE DA JANELA DA TOOL
+======================================
+
+- O arquivo deve se chamar ICON (ex.: icon.png ou icon.ico).
+- Formatos aceitos: ICO, PNG, JPG, JPEG, BMP, GIF e WEBP
+  (de preferencia quadrado; 256x256 ou maior fica melhor).
+- O icone aparece na barra de titulo ao lado de 'God of War Text
+  Editor', na barra de tarefas e nos dialogs da tool.
+- Se houver mais de um (icon.png e icon.ico), a ordem e:
+  ico, png, jpg, jpeg, bmp, gif, webp.
+- Arquivos com outros nomes sao ignorados.
+- Para remover, use Visualizar > Icone da janela > Remover icone
+  (o arquivo vira icon.ext.off e pode ser renomeado de volta).

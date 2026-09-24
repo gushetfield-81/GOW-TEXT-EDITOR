@@ -1,0 +1,12 @@
+A PASTA app\ FAZ PARTE DO PACOTE PORTÁTIL R9
+
+O ZIP GodOfWarTextEditor_Aprimorado_2026-09-24_R9_EXE.zip inclui app\ ao lado
+de GodOfWarTextEditor.exe. O launcher sempre executa gow_text_editor.py desta
+pasta; por isso a R9 não exige recompilar o EXE.
+
+Esta árvore de fonte não repete aproximadamente 65 MB do runtime Windows. Para
+executá-la sem o ZIP, use Python 3.10+ com PySide6; para uso portátil, extraia
+o ZIP completo antes de abrir o EXE.
+
+R9: rota efetiva de cor da seleção, escopo explícito de FlashMsgNColor/
+MessageTemplate, ramos físicos do FLP e override inline seguro da seleção.

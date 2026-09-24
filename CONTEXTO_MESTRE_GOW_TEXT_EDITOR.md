@@ -1173,3 +1173,56 @@ se precisar regerar o pacote.
   tag/release não-draft [`v2026.09.24-r8`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r8)
   e asset ZIP anexado com o SHA-256 acima. R7 não foi sobrescrita e nenhum WAD
   de entrada foi publicado.
+
+---
+
+## Sessão 22 (2026-09-24) — R9: rota efetiva de cor e override inline seguro
+
+### Motivo
+
+A R8 pintava `[*N]`, mas ainda deixava uma cor base de `MessageTemplate_LineN`
+parecer editável para um trecho cuja rota real era `FlashMsgNColor`. A R9 evita
+essa alteração acidental e oferece um override por seleção quando o formato o
+permite.
+
+### Evidência obtida antes da implementação
+
+- MSG 701: `[*1] [IconBlade] LÂMINAS DE ATENA` usa
+  `FlashMsg1Color = #7F2805`; não é a base `#644B28`.
+- Reversão de GlobalHandlers/KeyFrames até `Data8` em `FLP_HUDA` separou as
+  cópias físicas de `MessageTemplate_LineN`:
+  - DynamicLabels 1–5, `#644B28`, ramo `MessageTemplates`;
+  - DynamicLabels 36–38, `#FFFFFF`, ramo
+    `PickUpInfoMenu → InfoTextMovieClips`.
+- `MessageTemplate_Style` é decidido pelo chamador no runtime; o WAD não grava
+  uma escolha por ID. A UI mostra candidatos físicos e não escolhe um estado por
+  suposição.
+- No R_PERMA de referência, `[*1]` ocorre 125 vezes em 91 mensagens e `[*3]`
+  está livre. O `EditTextRender` analisado desenha somente estilos 1–4.
+
+### Implementação
+
+- Barra **ROTA DA SELEÇÃO**: identifica `[*N] → FlashMsgNColor → RGB`, ou
+  `[*0]/[*] → MessageTemplate_LineN`, instâncias/ramos e BlendColors.
+- Seleção com `[*N]`: **BASE NÃO PINTA [*N]** bloqueia a edição de DynamicLabel
+  e encaminha a **Editar associada…**, que confirma o alcance global.
+- DynamicLabels de template mostram índice e ramo físico; sua edição também pede
+  confirmação de escopo compartilhado.
+- `runtime_paths_for_text_target()` rastreia KeyFrames/handlers até `Data8`.
+- O wrap de seleção restaura o estilo que vinha depois de cada trecho/linha, em
+  vez de sempre gravar `[*0]`.
+- **Nova cor exclusiva…** reserva somente slot 1–4 com contagem zero em todos
+  os MSGS_TXT, altera 12 bytes RGB e insere tokens apenas na seleção. Se nenhum
+  slot estiver livre, explica que RGB adicional requer mudança do runtime/ELF.
+
+### Validação
+
+- py_compile aprovado;
+- 5 testes R9 de núcleo/Qt offscreen: MSG 701, ramos marrom/branco,
+  restauração, round-trip, base bloqueada e reserva de `[*3]`;
+- hashes dos WADs de entrada preservados; nenhum WAD, `.ini`, cache, log ou
+  credencial é incluído.
+
+### Publicação R9
+
+Preencher após push/release: tag, URL, tamanho e SHA-256 do ZIP.

@@ -12,10 +12,11 @@ estrutural e bloqueio de troca entre formatos GoW1 e GoW2. Na R5, FLPs GoW2
 recebem edição cirúrgica das três camadas de cor de texto: DynamicLabel,
 RenderCommand de StaticLabel e BlendColors/KeyFrames. Na R7, as cores base
 fisicamente associadas são pintadas nos próprios glifos do editor, inclusive
-no vínculo real `MSGS_TXT → MessageTemplate_LineN`. A R8 acrescenta a camada
-real de estilo do runtime Flash: controles `[*1]`…`[*4]` de `MSGS_TXT` são
-renderizados no próprio texto e editam os RGB físicos `FlashMsgNColor` de
-`GBL_Global`, sem transformar o recurso em HTML.
+no vínculo real `MSGS_TXT → MessageTemplate_LineN`. A R8 acrescentou a camada
+real de estilo do runtime Flash. A **R9** mostra a rota efetiva do trecho
+selecionado (`[*N] → FlashMsgNColor` ou base `MessageTemplate_LineN`), o escopo
+compartilhado, instâncias/ramos físicos do FLP e um override seguro por seleção,
+sem transformar o recurso em HTML.
 
 > **Tool By: Gus Hetfield** | **Special Thanks: Mogaika**
 
@@ -28,11 +29,11 @@ god-of-war-text-editor/
 ├── CONTEXTO_MESTRE_GOW_TEXT_EDITOR.md   ← documentação viva (formatos binários,
 │                                           decisões, regras, histórico — LEIA PRIMEIRO)
 ├── tool/
-│   ├── GodOfWarTextEditor_Aprimorado_2026-09-24_R8/ ← código-fonte da tool (PySide6)
+│   ├── GodOfWarTextEditor_Aprimorado_2026-09-24_R9/ ← código-fonte da tool (PySide6)
 │   │   ├── gow_text_editor.py                        editor WAD/MSGS/FLP + cores WYSIWYG/runtime inline
 │   │   ├── GodOfWarTextEditor.exe                    launcher Windows
 │   │   └── GODOFWAR.TTF, LEIA-ME.txt, icone/, imagens_de_fundo/
-│   ├── GodOfWarTextEditor_Aprimorado_2026-09-24_R8_EXE.zip ← pacote portátil atual
+│   ├── GodOfWarTextEditor_Aprimorado_2026-09-24_R9_EXE.zip ← pacote portátil atual
 │   └── GodOfWarTextEditor_Aprimorado_2026-09-22_R2_EXE.zip ← histórico preservado
 │       (os ZIPs locais R3/R4/R5 foram removidos para liberar espaço; R3 segue
 │        disponível na release GitHub e R8 substitui localmente as revisões anteriores)
@@ -53,18 +54,15 @@ god-of-war-text-editor/
 
 | O quê | Onde |
 |---|---|
-| **Código Python R8** (`gow_text_editor.py`) | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8/`](tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8/gow_text_editor.py) — requer Python 3.10+ e `pip install PySide6` |
-| **Pacote R8 publicado — 2026-09-24** | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8_EXE.zip`](tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8_EXE.zip) — ZIP portátil com cores WYSIWYG físicas e controles inline reais `[*N]` de MSGS_TXT |
-| **Release R8 publicada — 2026-09-24** | [`v2026.09.24-r8`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r8) — fonte, testes, documentação e ZIP portátil publicados; nenhum WAD de entrada foi enviado. R7 continua como referência histórica. |
-| **Release R7 publicada — 2026-09-24** | [`v2026.09.24-r7`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r7) — cores físicas WYSIWYG de StaticLabel/MSGS_TXT. |
+| **Código Python R9** (`gow_text_editor.py`) | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R9/`](tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R9/gow_text_editor.py) — requer Python 3.10+ e `pip install PySide6` |
+| **Pacote R9 publicado — 2026-09-24** | [`tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R9_EXE.zip`](tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R9_EXE.zip) — ZIP portátil com rota de cor, escopo e override inline seguro |
+| **Release R9 publicada — 2026-09-24** | [`v2026.09.24-r9`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r9) — fonte, testes, documentação e ZIP portátil; nenhum WAD de entrada foi enviado. |
+| **Release R8 histórica — 2026-09-24** | [`v2026.09.24-r8`](https://github.com/gushetfield-81/GOW-TEXT-EDITOR/releases/tag/v2026.09.24-r8) — primeira interpretação/edição de `[*N]`. |
 
-> **Nota de validação:** a R8 preserva os fluxos TXT/FLP, `FLP_Shell`, labels
-> multilinha, transferência de FLP bruto e a camada física WYSIWYG da R7. Em
-> `MSGS_TXT`, ela também interpreta `[*]`, `[*0]` e `[*1]`…`[*4]` com os RGB
-> reais de `GBL_Global`, limitados à mesma `MessageTemplate_LineN` que o runtime
-> constrói. O texto continua puro/serializável e BlendColors continuam animações,
-> não uma aparência inventada. Antes de distribuir um **WAD editado**, ainda é
-> recomendado testá-lo no PCSX2 ou console.
+> **Nota de validação:** a R9 declara se o texto usa `FlashMsgNColor` global ou
+> `MessageTemplate_LineN`/DynamicLabel físico. Para bases contextuais, ela lista
+> ramos FLP e BlendColors possíveis, sem fingir que um WAD estático conhece o
+> evento runtime que chamou a mensagem. O texto permanece puro/serializável.
 
 ## 🚀 Instalação rápida (cada patch)
 
@@ -80,10 +78,11 @@ O launcher e o código versionados aqui:
 
 | Arquivo | Tamanho (B) | SHA-256 |
 |---|---|---|
-| `tool/…/GodOfWarTextEditor.exe` (launcher x64) | 179.712 | `7c43368fd54d101fa0d3400d63dc8ac122782f2702f2e2248156497858dde950` |
-| `tool/…/R8/gow_text_editor.py` | 314.897 | `177bdcd16437a7c4649cd26ad52dc9e898822cbe9518ed0568e92395fa1173fb` |
-| `tool/…/R8/LEIA-ME.txt` | 22.006 | `1ca6086a20191843b1a0aca78815b66da475854ef1140c595cce136e39b8db95` |
-| `tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8_EXE.zip` | 33.621.831 | `532e58486d233bffd8df0bfb595166d74aa3a933abac63367798e7fa4b4bb8c9` |
+| `tool/…/GodOfWarTextEditor.exe` (launcher x64, R9) | 179.712 | `7c43368fd54d101fa0d3400d63dc8ac122782f2702f2e2248156497858dde950` |
+| `tool/…/R9/gow_text_editor.py` | 338.255 | `f12719090c4bdd77c1ad3e01ba4ba7908400c4518fa984fcfc0e9044c2eae8ce` |
+| `tool/…/R9/LEIA-ME.txt` | 25.211 | `789b2f31432b793f1264b61432cd5bfe01090cebb7ff8468936cdfcbb9f7f652` |
+| `tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R9_EXE.zip` | 33.628.339 | `d2c6c40dac2748ae4129590c1d7882a6fe6f044e1afe2a1e70572c4eeddb3968` |
+| `tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R8_EXE.zip` (histórico) | 33.621.831 | `532e58486d233bffd8df0bfb595166d74aa3a933abac63367798e7fa4b4bb8c9` |
 | `tool/GodOfWarTextEditor_Aprimorado_2026-09-24_R7_EXE.zip` (histórico) | 33.615.425 | `88c1ef57acda7b5bd013e03581d179deaa09f9468e04663ac3726a794edce7aa` |
 | `tool/GodOfWarTextEditor_Aprimorado_2026-09-22_R2_EXE.zip` (histórico) | 33.596.031 | `cdb7dd3d3f4d09ab913347528f5ba88d69e1e77ddda77655b2734ad513c674bd` |
 
@@ -115,6 +114,7 @@ de 25 MB/arquivo do upload web do GitHub):
 | Sessão 19 (2026-09-24) | Cores durante a edição — R6 | Painel inline relaciona StaticLabel ao seu RenderCommand/BlendColors e `MSGS_TXT` ao `MessageTemplate_LineN` sob o cursor; cores editáveis sem abandonar o texto ativo |
 | Sessão 20 (2026-09-24) | Cores WYSIWYG durante a edição — R7 | Substitui a interação de tabela: glifos do editor recebem a cor base física; seletor/botão ficam no cabeçalho da própria caixa; preserva campos diretos e trata BlendColors apenas como animações |
 | Sessão 21 (2026-09-24) | Cores inline reais `MSGS_TXT` — R8 | `[*]`/`[*0]` e `[*1]`…`[*4]` passam a renderizar no editor/prévia com `FlashMsgNColor` extraído de `GBL_Global`; inserção/troca/wrap e patch RGB de 12 bytes respeitam o reset por `MessageTemplate_LineN` |
+| Sessão 22 (2026-09-24) | Rota efetiva de cor + override seguro — R9 | Cursor/seleção revela FlashMsgNColor ou MessageTemplate_LineN, escopo compartilhado, ramos físicos MessageTemplates/PickUpInfoMenu, BlendColors e cor exclusiva apenas em slot runtime livre |
 
 ## ⚠️ Nota importante
 
@@ -258,3 +258,26 @@ linha, serialização raw, round-trip, localização binária do patch e Qt
 `offscreen` (editor + prévia + cursor + RGB). Consulte
 [`RELATORIO_CORES_INLINE_RUNTIME_R8.md`](RELATORIO_CORES_INLINE_RUNTIME_R8.md)
 e [`tool/RELEASE_NOTES_2026-09-24_R8.md`](tool/RELEASE_NOTES_2026-09-24_R8.md).
+
+
+## 🎯 Rota efetiva de cor e override por seleção — R9
+
+A barra **ROTA DA SELEÇÃO** fica no próprio editor de `MSGS_TXT`. Quando o
+cursor está após `[*1]`…`[*4]`, ela mostra a rota `FlashMsgNColor`, o RGB final
+e quantos marcadores/mensagens compartilham esse slot. Na MSG 701,
+`LÂMINAS DE ATENA` é `[*1] → #7F2805`; a base física fica bloqueada naquele
+ponto para não alterar um DynamicLabel por engano.
+
+Quando a rota é `[*0]`/`[*]`, a R9 mostra `MessageTemplate_LineN`, cada
+DynamicLabel físico, seu ramo até a raiz do FLP e BlendColors relevantes. No
+FLP_HUDA, as cópias de mesmo nome pertencem a `MessageTemplates` ou
+`PickUpInfoMenu → InfoTextMovieClips`. `MessageTemplate_Style` é escolhido pelo
+chamador no runtime, portanto a tool mostra alternativas comprovadas em vez de
+adivinhar o contexto.
+
+**Aplicar à seleção** restaura o estilo que existia depois do trecho. **Nova
+cor exclusiva…** reserva apenas um slot 1–4 sem uso e injeta tokens somente na
+seleção; se os quatro já estão em uso, a interface não promete RGB independente
+que o renderer não oferece. Consulte
+[`RELATORIO_ROTAS_CORES_R9.md`](RELATORIO_ROTAS_CORES_R9.md) e as
+[`notas da release`](tool/RELEASE_NOTES_2026-09-24_R9.md).

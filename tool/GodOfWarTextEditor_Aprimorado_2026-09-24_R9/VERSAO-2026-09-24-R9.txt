@@ -1,0 +1,44 @@
+GOD OF WAR TEXT EDITOR — PACOTE PORTÁTIL WINDOWS x64
+Build: 2026-09-24 R9 — rota efetiva de cor + override inline seguro
+
+NOVO NESTA REVISÃO
+- A barra ROTA DA SELEÇÃO identifica a camada que realmente pinta o trecho:
+  [*N] → FlashMsgNColor, ou [*0]/[*] → MessageTemplate_LineN físico.
+- Título da MSG 701: [*1] [IconBlade] LÂMINAS DE ATENA é mostrado como
+  FlashMsg1Color #7F2805, não como a base #644B28. Enquanto essa rota estiver
+  ativa, a edição da BASE fica bloqueada para evitar mudança acidental.
+- Cada FlashMsgNColor mostra escopo: quantidade de marcadores e mensagens
+  MSGS_TXT que compartilham o RGB. Editar associada… pede confirmação.
+- Cópias de MessageTemplate_LineN são distinguidas pelo caminho físico de
+  KeyFrames: MessageTemplates e PickUpInfoMenu → InfoTextMovieClips não são
+  apresentadas como uma única cor global. BlendColors continuam anotadas como
+  animações.
+- Aplicar à seleção injeta tokens preservando a rota que vem depois do trecho.
+- Nova cor exclusiva… só reserva um slot [*1]…[*4] sem uso e aplica-o à
+  seleção; não promete RGB arbitrário ilimitado por texto.
+
+VALIDAÇÃO R9
+- py_compile da fonte e dos testes R9 aprovado.
+- Núcleo: rota #701, rastreamento de ramos FLP, wrap que restaura estilo,
+  patch RGB fixo de 12 bytes e round-trip WAD.
+- Qt offscreen: cursor no título bloqueia BASE e aponta para FlashMsg1; B1H
+  lista os ramos marrom/branco; cor exclusiva reserva [*3] sem mudar outra
+  mensagem.
+- WAD de entrada R_PERMA usado somente para leitura; hash preservado.
+
+LIMITAÇÃO HONESTA
+O valor de MessageTemplate_Style e o evento que chama uma mensagem existem no
+runtime. O WAD não grava um histórico por ID. A R9 lista os ramos físicos
+comprovados e o usuário escolhe o contexto correto; não inventa uma cor final
+quando o chamador é desconhecido.
+
+PUBLICAÇÃO
+Preparado para v2026.09.24-r9. Nenhum WAD de entrada acompanha esta release.
+
+Tool By: Gus Hetfield
+Special Thanks: Mogaika
+
+INTEGRIDADE (arquivos dentro desta pasta)
+- gow_text_editor.py SHA-256: f12719090c4bdd77c1ad3e01ba4ba7908400c4518fa984fcfc0e9044c2eae8ce
+- LEIA-ME.txt SHA-256: 789b2f31432b793f1264b61432cd5bfe01090cebb7ff8468936cdfcbb9f7f652
+- GodOfWarTextEditor.exe SHA-256: 7c43368fd54d101fa0d3400d63dc8ac122782f2702f2e2248156497858dde950

@@ -1,0 +1,12 @@
+COLOQUE AQUI A IMAGEM DE FUNDO DA TOOL
+=====================================
+
+- O arquivo deve se chamar BACKGROUND (ex.: background.png ou background.jpg).
+- Formatos aceitos: PNG, JPG, JPEG, BMP, GIF e WEBP.
+- A tool carrega essa imagem sozinha como fundo na proxima abertura
+  (ou use Visualizar > Imagem de fundo > Recarregar da pasta).
+- Arquivos com outros nomes sao ignorados.
+- Se existir mais de um (background.png e background.jpg), a ordem de
+  preferencia e: png, jpg, jpeg, bmp, gif, webp.
+- Para voltar ao fundo solido padrao, apague/renomeie o arquivo e use
+  Visualizar > Imagem de fundo > Remover imagem.
